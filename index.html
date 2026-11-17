@@ -1,13 +1,10 @@
-
-dog_hanok_village_v6.html
-
-100%
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>한옥풍 로우폴리 마을 & 대두 댕댕이 멀티플레이 놀이터</title>
+  <title>한옥풍 3D 로우폴리 마을 & 대두 댕댕이 멀티플레이 놀이터</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐶</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -102,14 +99,16 @@ dog_hanok_village_v6.html
 
   <canvas id="gameCanvas"></canvas>
 
+  <!-- 실시간 멀티플레이 접속 알림 배너 & 주소복사 버튼 -->
   <div id="multiplayerBanner" class="fixed top-14 left-3 right-3 z-30 flex justify-center pointer-events-none">
     <div class="bg-emerald-900/90 text-emerald-100 px-4 py-1.5 rounded-full text-xs font-bold border border-emerald-400 shadow-lg flex items-center gap-2 pointer-events-auto">
       <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
       <span>🌐 실시간 멀티플레이 연동됨 (친구와 같은 링크 접속 시 함께 플레이!)</span>
-      <button onclick="shareLink()" class="bg-emerald-500 text-white px-2 py-0.5 rounded text-[10px] ml-1">링크복사</button>
+      <button onclick="shareLink()" class="bg-emerald-500 text-white px-2.5 py-1 rounded-md text-xs ml-1 shadow font-bold hover:bg-emerald-600">🔗 주소복사</button>
     </div>
   </div>
 
+  <!-- 포켓몬고 스타일 실제 동네 3D 건물 GPS 산책 뷰 -->
   <div id="realWorldWalkView" class="hidden fixed inset-0 z-10 bg-sky-100">
     <div id="map3d" class="w-full h-full"></div>
     <div class="fixed top-3 left-3 right-3 z-30 flex flex-col gap-2 pointer-events-none">
@@ -147,14 +146,18 @@ dog_hanok_village_v6.html
     </div>
   </div>
 
+  <!-- 한옥마을 상단 HUD -->
   <div id="parkHud" class="fixed top-2.5 left-2.5 right-2.5 z-20 flex flex-col gap-1.5 pointer-events-none">
     <div class="flex items-center justify-between gap-1.5 pointer-events-auto">
       <button onclick="openTownBattleModal()" class="bg-[#2a211b]/90 text-white px-3 py-1.5 rounded-xl border border-amber-400/60 shadow flex items-center gap-1.5 text-xs font-jua">
         <span class="text-amber-300">🏮 <span id="myTownName">부산광역시</span></span>
         <span class="bg-rose-600 text-white px-1.5 py-0.2 rounded text-[11px]"><span id="myTownCount">171</span>마리</span>
       </button>
-      <div class="bg-[#2a211b]/85 text-amber-100 px-2.5 py-1 rounded-full text-[10px] font-bold border border-stone-600 shadow">
-        VS <span class="text-amber-300">서울특별시 214마리</span> 🔥
+      <div class="flex items-center gap-1.5">
+        <button onclick="shareLink()" class="bg-emerald-600 text-white px-2.5 py-1 rounded-xl text-xs font-jua shadow border border-emerald-800">🔗 주소복사</button>
+        <div class="bg-[#2a211b]/85 text-amber-100 px-2.5 py-1 rounded-full text-[10px] font-bold border border-stone-600 shadow">
+          VS <span class="text-amber-300">서울 214마리</span> 🔥
+        </div>
       </div>
     </div>
 
@@ -318,14 +321,14 @@ dog_hanok_village_v6.html
       <p class="text-xs text-center text-stone-700 mb-3">도시를 선택하고 사진을 올리면 <b>실시간 멀티플레이 맵</b>에 함께 입주해요!</p>
       <div class="space-y-2.5">
         <div class="flex flex-col items-center">
-          <label for="dogPhotoInput" class="cursor-pointer w-24 h-24 rounded-full bg-amber-100 border-4 border-dashed border-amber-600 flex flex-col items-center justify-center overflow-hidden hover:bg-amber-200 transition relative">
-            <img id="photoPreview" class="hidden w-full h-full object-cover" />
-            <span id="photoPlaceholder" class="text-center text-xs text-stone-900 font-bold p-2">📷 터치해서<br>사진 선택</span>
+          <label for="dogPhotoInput" class="cursor-pointer w-24 h-24 rounded-full bg-amber-100 border-4 border-dashed border-amber-600 flex flex-col items-center justify-center overflow-hidden hover:bg-amber-200 transition relative shadow-inner">
+            <img id="photoPreview" class="hidden w-full h-full object-cover rounded-full" />
+            <span id="photoPlaceholder" class="text-center text-xs text-stone-900 font-bold p-2">📷 터치해서<br>사진 선택<br><span class="text-[9px] text-emerald-700">(자동 원형누끼)</span></span>
           </label>
           <input id="dogPhotoInput" type="file" accept="image/*" onchange="handlePhotoUpload(event)" class="hidden" />
           <div id="detectedColorBadge" class="hidden mt-1.5 flex items-center gap-1.5 text-[11px] font-bold text-stone-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-400">
             <span id="detectedColorDot" class="w-3 h-3 rounded-full border border-black/30"></span>
-            <span>털색 자동 추출 완료!</span>
+            <span>털색 & 원형 누끼 추출 완료!</span>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-2">
@@ -538,7 +541,7 @@ dog_hanok_village_v6.html
       return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
     }
 
-    let dogs = JSON.parse(localStorage.getItem('dp_dogs_v6') || 'null') || [
+    let dogs = JSON.parse(localStorage.getItem('dp_dogs_v7') || 'null') || [
       {
         id: 'dog1', name: '백설기', breed: '비숑 프리제', age: '2살', town: '부산광역시',
         intro: '한옥 마당에서 뛰어노는 찹쌀떡 백설기예요! ☁️',
@@ -590,7 +593,7 @@ dog_hanok_village_v6.html
     function saveData() {
       localStorage.setItem('dp_snacks', snacks);
       localStorage.setItem('dp_coins', coins);
-      localStorage.setItem('dp_dogs_v6', JSON.stringify(dogs));
+      localStorage.setItem('dp_dogs_v7', JSON.stringify(dogs));
       localStorage.setItem('dp_hanok_owned_v3', JSON.stringify(ownedItems));
       localStorage.setItem('dp_hanok_house', equippedHouse);
       localStorage.setItem('dp_hanok_toy_v3', equippedToy);
@@ -1690,7 +1693,7 @@ dog_hanok_village_v6.html
       ctx.save();
       ctx.translate(21, -8);
       ctx.rotate(0.38 + earFlap);
-      ctx.beginPath(); ctx.ellipse(0, 7, 7, 14, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(0, 7, 7, 14, 0, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
 
       ctx.beginPath();
@@ -1997,11 +2000,28 @@ dog_hanok_village_v6.html
           tempCanvas.width = 240;
           tempCanvas.height = 240;
           const tCtx = tempCanvas.getContext('2d');
+          
+          // 자동 원형 누끼 (Circular clipping mask) 적용
+          tCtx.save();
+          tCtx.beginPath();
+          tCtx.arc(120, 120, 116, 0, Math.PI * 2);
+          tCtx.closePath();
+          tCtx.clip();
+
           const minSize = Math.min(img.width, img.height);
           const sx = (img.width - minSize) / 2;
           const sy = (img.height - minSize) / 2;
           tCtx.drawImage(img, sx, sy, minSize, minSize, 0, 0, 240, 240);
-          uploadedPhotoData = tempCanvas.toDataURL('image/jpeg', 0.85);
+          tCtx.restore();
+
+          // 흰색 외곽 테두리 추가로 프로필 완성도 극대화
+          tCtx.strokeStyle = '#ffffff';
+          tCtx.lineWidth = 8;
+          tCtx.beginPath();
+          tCtx.arc(120, 120, 112, 0, Math.PI * 2);
+          tCtx.stroke();
+
+          uploadedPhotoData = tempCanvas.toDataURL('image/png', 0.90);
 
           const imgData = tCtx.getImageData(80, 80, 80, 80).data;
           let r = 0, g = 0, b = 0, count = 0;
@@ -2110,7 +2130,7 @@ dog_hanok_village_v6.html
     function openFortuneModal() {
       const userDog = dogs.find(d => d.isUser) || dogs[0];
       const fortunes = [
-        '오늘은 한옥 안마당에서 귀한 인연을 만나 개껌을 2B배로 얻어먹을 대길 점괘예요!',
+        '오늘은 한옥 안마당에서 귀한 인연을 만나 개껌을 2배로 얻어먹을 대길 점괘예요!',
         '돌담길 산책 중 네잎클로버를 발견할 행운의 날! 사진 찍으면 인생샷이 나와요.',
         '보호자님과 눈빛만 봐도 통하는 텔레파시 최고조의 하루입니다!'
       ];
@@ -2170,4 +2190,3 @@ dog_hanok_village_v6.html
   </script>
 </body>
 </html>
-dog_hanok_village_v6.html 표시 중입니다.
