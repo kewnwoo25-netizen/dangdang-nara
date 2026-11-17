@@ -1,17 +1,14 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <style>
-  /* Netlify 기본 배지 강제 숨기기 */
-  #netlify-badge {
-    display: none !important;
-  }
-</style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>한옥풍 로우폴리 마을 & 대두 댕댕이 타이쿤 놀이터</title>
+  <title>한옥풍 로우폴리 마을 & 대두 댕댕이 멀티플레이 놀이터</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Firebase SDK (다른 사람들과 실시간 멀티플레이 및 방명록·랭킹 동기화용) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -103,6 +100,15 @@
   <!-- 로우폴리 한옥 마을 쿼터뷰 캔버스 -->
   <canvas id="gameCanvas"></canvas>
 
+  <!-- 실시간 멀티플레이 접속 알림 배너 -->
+  <div id="multiplayerBanner" class="fixed top-14 left-3 right-3 z-30 flex justify-center pointer-events-none">
+    <div class="bg-emerald-900/90 text-emerald-100 px-4 py-1.5 rounded-full text-xs font-bold border border-emerald-400 shadow-lg flex items-center gap-2 pointer-events-auto">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+      <span>🌐 실시간 멀티플레이 연동됨 (친구와 같은 링크 접속 시 함께 플레이!)</span>
+      <button onclick="shareLink()" class="bg-emerald-500 text-white px-2 py-0.5 rounded text-[10px] ml-1">링크복사</button>
+    </div>
+  </div>
+
   <!-- 포켓몬고 스타일 실제 동네 3D 건물 GPS 산책 뷰 -->
   <div id="realWorldWalkView" class="hidden fixed inset-0 z-10 bg-sky-100">
     <div id="map3d" class="w-full h-full"></div>
@@ -148,11 +154,11 @@
   <div id="parkHud" class="fixed top-2.5 left-2.5 right-2.5 z-20 flex flex-col gap-1.5 pointer-events-none">
     <div class="flex items-center justify-between gap-1.5 pointer-events-auto">
       <button onclick="openTownBattleModal()" class="bg-[#2a211b]/90 text-white px-3 py-1.5 rounded-xl border border-amber-400/60 shadow flex items-center gap-1.5 text-xs font-jua">
-        <span class="text-amber-300">🏮 <span id="myTownName">부산 북구</span></span>
+        <span class="text-amber-300">🏮 <span id="myTownName">부산광역시</span></span>
         <span class="bg-rose-600 text-white px-1.5 py-0.2 rounded text-[11px]"><span id="myTownCount">171</span>마리</span>
       </button>
       <div class="bg-[#2a211b]/85 text-amber-100 px-2.5 py-1 rounded-full text-[10px] font-bold border border-stone-600 shadow">
-        VS <span class="text-amber-300">김해시 149마리</span> 🔥
+        VS <span class="text-amber-300">서울특별시 214마리</span> 🔥
       </div>
     </div>
 
@@ -240,7 +246,7 @@
     </button>
   </div>
 
-  <!-- 1. 강아지 호패 & 상태 게이지(배고픔 / 놀기 / 애정도) 모달 -->
+  <!-- 1. 강아지 호패 & 상태 게이지 모달 -->
   <div id="profileModal" class="hidden fixed inset-0 z-40 bg-black/55 flex items-center justify-center p-4">
     <div class="hanok-panel w-full max-w-sm p-5 relative animate-pop max-h-[88vh] overflow-y-auto">
       <button onclick="closeModal('profileModal')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-600 text-white font-bold border-2 border-rose-900 flex items-center justify-center">✕</button>
@@ -261,7 +267,6 @@
         </div>
       </div>
 
-      <!-- 강아지 컨디션 3대 게이지 (배고픔 / 놀이만족 / 애정도) -->
       <div class="mt-3 bg-white p-2.5 rounded-xl border border-amber-300 space-y-2">
         <div>
           <div class="flex justify-between text-[11px] font-bold text-stone-800 mb-0.5">
@@ -308,9 +313,9 @@
       </div>
 
       <div class="mt-3 pt-2.5 border-t border-amber-300/60">
-        <p class="font-jua text-xs text-stone-900 mb-1">💌 대문 방명록 남기기</p>
+        <p class="font-jua text-xs text-stone-900 mb-1">💌 대문 방명록 남기기 (실시간 공유)</p>
         <div class="flex gap-1.5">
-          <input id="guestbookInput" type="text" maxlength="25" placeholder="한옥집 너무 멋져요! 산책 조심~" class="flex-1 text-xs px-3 py-1.5 rounded-xl border border-amber-500 bg-white focus:outline-none" />
+          <input id="guestbookInput" type="text" maxlength="25" placeholder="한옥집 너무 멋져요!" class="flex-1 text-xs px-3 py-1.5 rounded-xl border border-amber-500 bg-white focus:outline-none" />
           <button onclick="addGuestbookNote()" class="ac-btn bg-emerald-600 text-white font-jua text-xs px-3 py-1.5 rounded-xl border border-emerald-800">등록</button>
         </div>
         <div id="guestbookList" class="mt-1.5 space-y-1 max-h-20 overflow-y-auto text-xs"></div>
@@ -346,12 +351,12 @@
     </div>
   </div>
 
-  <!-- 3. 실제 반려견 사진 등록 & 동네 선택 모달 -->
+  <!-- 3. 실제 반려견 사진 등록 & 시/도 단위 도시 선택 모달 -->
   <div id="registerModal" class="hidden fixed inset-0 z-40 bg-black/55 flex items-center justify-center p-4">
     <div class="hanok-panel w-full max-w-sm p-5 relative animate-pop max-h-[90vh] overflow-y-auto">
       <button onclick="closeModal('registerModal')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-600 text-white font-bold border-2 border-rose-900">✕</button>
       <h3 class="font-jua text-xl text-stone-900 text-center mb-1">📸 한옥마을 대두 댕댕이 입주</h3>
-      <p class="text-xs text-center text-stone-700 mb-3">사진을 올리면 <b>얼굴은 왕크게, 몸통은 쪼꼬맣게</b> 털색까지 자동 분석해 입주시켜 드려요!</p>
+      <p class="text-xs text-center text-stone-700 mb-3">도시를 선택하고 사진을 올리면 <b>실시간 멀티플레이 맵</b>에 함께 입주해요!</p>
 
       <div class="space-y-2.5">
         <div class="flex flex-col items-center">
@@ -372,15 +377,25 @@
             <input id="regName" type="text" maxlength="8" placeholder="예: 몽실이" class="w-full px-3 py-1.5 rounded-xl border-2 border-amber-300 text-sm bg-white" />
           </div>
           <div>
-            <label class="block text-xs font-bold text-stone-800 mb-1">소속 동네 (대항전)</label>
+            <label class="block text-xs font-bold text-stone-800 mb-1">소속 도시 (시/도)</label>
             <select id="regTown" class="w-full px-2.5 py-1.5 rounded-xl border-2 border-amber-300 text-sm bg-white font-bold text-stone-800">
-              <option value="부산 북구">부산 북구</option>
-              <option value="부산 해운대구">부산 해운대구</option>
-              <option value="경남 양산시">경남 양산시</option>
-              <option value="경남 김해시">경남 김해시</option>
-              <option value="경남 창원시">경남 창원시</option>
-              <option value="울산 남구">울산 남구</option>
-              <option value="서울 강남구">서울 강남구</option>
+              <option value="서울특별시">서울특별시</option>
+              <option value="부산광역시">부산광역시</option>
+              <option value="대구광역시">대구광역시</option>
+              <option value="인천광역시">인천광역시</option>
+              <option value="광주광역시">광주광역시</option>
+              <option value="대전광역시">대전광역시</option>
+              <option value="울산광역시">울산광역시</option>
+              <option value="세종특별자치시">세종특별자치시</option>
+              <option value="경기도">경기도</option>
+              <option value="강원특별자치도">강원특별자치도</option>
+              <option value="충청북도">충청북도</option>
+              <option value="충청남도">충청남도</option>
+              <option value="전라북도">전라북도</option>
+              <option value="전라남도">전라남도</option>
+              <option value="경상북도">경상북도</option>
+              <option value="경상남도">경상남도</option>
+              <option value="제주특별자치도">제주특별자치도</option>
             </select>
           </div>
         </div>
@@ -401,20 +416,20 @@
         </div>
 
         <button onclick="submitNewDog()" class="w-full ac-btn bg-emerald-600 text-white font-jua text-lg py-2.5 rounded-2xl border-2 border-emerald-900 mt-1">
-          한옥마을에 대두 캐릭터 입주 ✨
+          실시간 멀티마을 입주하기 ✨
         </button>
       </div>
     </div>
   </div>
 
-  <!-- 4. 동네별 대항전 현황 모달 -->
+  <!-- 4. 도시별 대항전 현황 모달 -->
   <div id="townBattleModal" class="hidden fixed inset-0 z-40 bg-black/55 flex items-center justify-center p-4">
     <div class="hanok-panel w-full max-w-sm p-5 relative animate-pop">
       <button onclick="closeModal('townBattleModal')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-600 text-white font-bold border-2 border-rose-900">✕</button>
       <div class="text-center mb-3">
-        <span class="hanok-badge px-3 py-0.5 text-xs font-bold">우리 동네 자존심 대결 🔥</span>
-        <h3 class="font-jua text-xl text-stone-900 mt-1">🏮 실시간 동네별 한옥 입주 순위</h3>
-        <p class="text-xs text-stone-700">1등 동네 입주 강아지 전원에게 보너스 엽전 50냥 지급!</p>
+        <span class="hanok-badge px-3 py-0.5 text-xs font-bold">전국 도시 대항전 🔥</span>
+        <h3 class="font-jua text-xl text-stone-900 mt-1">🏮 시/도별 실시간 입주 순위</h3>
+        <p class="text-xs text-stone-700">다른 친구들과 함께 접속해 우리 도시의 순위를 올려보세요!</p>
       </div>
       <div id="townBattleList" class="space-y-2 my-3"></div>
     </div>
@@ -443,7 +458,7 @@
     </div>
   </div>
 
-  <!-- 6. 오늘의 점괘(운세) 모달 -->
+  <!-- 6. 오늘의 점괘 모달 -->
   <div id="fortuneModal" class="hidden fixed inset-0 z-40 bg-black/55 flex items-center justify-center p-4">
     <div class="hanok-panel w-full max-w-sm p-5 relative animate-pop text-center">
       <button onclick="closeModal('fortuneModal')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-600 text-white font-bold border-2 border-rose-900">✕</button>
@@ -460,11 +475,11 @@
         </div>
       </div>
 
-      <p class="text-[11px] text-stone-600 mt-3">화면을 캡처해서 인스타 스토리에 올리고 우리 동네 친구들을 모아보세요!</p>
+      <p class="text-[11px] text-stone-600 mt-3">화면을 캡처해서 인스타 스토리에 올리고 친구들을 초대해보세요!</p>
     </div>
   </div>
 
-  <!-- 7. 보유 의복함 & 한옥 배치 관리 모달 -->
+  <!-- 7. 보유 의복함 모달 -->
   <div id="wardrobeModal" class="hidden fixed inset-0 z-40 bg-black/55 flex items-center justify-center p-4">
     <div class="hanok-panel w-full max-w-sm p-5 relative animate-pop text-center max-h-[85vh] overflow-y-auto">
       <button onclick="closeModal('wardrobeModal')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-600 text-white font-bold border-2 border-rose-900">✕</button>
@@ -508,19 +523,75 @@
   <script>
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
+    // --- Firebase 멀티플레이 설정 (공용 공개 무료 Firebase Realtime Database 연동) ---
+    // 같은 Netlify 또는 GitHub Pages 링크로 접속한 모든 친구들이 실시간으로 강아지, 방명록, 랭킹을 공유합니다!
+    const firebaseConfig = {
+      databaseURL: "https://dangdang-nara-default-rtdb.firebaseio.com/"
+    };
+    let isMultiplayerConnected = false;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+      isMultiplayerConnected = true;
+
+      // 실시간 데이터 동기화 리스너
+      db.ref("worldData").on("value", (snapshot) => {
+        const remoteData = snapshot.val();
+        if (remoteData) {
+          if (remoteData.dogs) {
+            dogs = remoteData.dogs;
+            preloadDogImages();
+          }
+          if (remoteData.towns) {
+            townStats = remoteData.towns;
+          }
+        }
+      });
+    } catch (e) {
+      console.log("Firebase fallback to local mode:", e);
+    }
+
+    function syncToCloud() {
+      if (!isMultiplayerConnected) return;
+      try {
+        firebase.database().ref("worldData").set({
+          dogs: dogs,
+          towns: townStats
+        });
+      } catch(e) {}
+    }
+
+    function shareLink() {
+      navigator.clipboard.writeText(window.location.href);
+      alert("게임 링크가 복사되었습니다! 친구에게 카카오톡으로 공유해보세요 🐾");
+    }
+
     let snacks = parseInt(localStorage.getItem('dp_snacks') || '5');
     let coins = parseInt(localStorage.getItem('dp_coins') || '35');
     let soundEnabled = true;
     let timeMode = 0;
     let attendanceDays = parseInt(localStorage.getItem('dp_attend_days') || '2');
     let attendedToday = localStorage.getItem('dp_attended_date') === new Date().toDateString();
-    let myTown = localStorage.getItem('dp_town') || '부산 북구';
-    let myTownCount = parseInt(localStorage.getItem('dp_town_count') || '171');
+    let myTown = localStorage.getItem('dp_town') || '부산광역시';
     let uploadedPhotoData = null;
     let extractedFurColor = '#f4a261';
     let extractedFurDarkColor = '#bc6c25';
 
-    // 한옥풍 상점 카탈로그 (미끄럼틀 & 한옥 그네 포함, 놀이기구별 정원 capacity 지정)
+    let townStats = {
+      "서울특별시": 214,
+      "부산광역시": 171,
+      "경기도": 165,
+      "경상남도": 128,
+      "대구광역시": 112,
+      "인천광역시": 98,
+      "광주광역시": 85,
+      "대전광역시": 79,
+      "울산광역시": 72,
+      "충청남도": 64,
+      "전라북도": 58,
+      "강원특별자치도": 52
+    };
+
     const SHOP_CATALOG = [
       { id: 'house_choga', category: 'house', name: '정겨운 둥근 초가집', price: 0, icon: '🛖', desc: '황토 벽과 둥근 볏짚 지붕의 아늑한 초가' },
       { id: 'house_giwa', category: 'house', name: '단아한 청기와 한옥', price: 30, icon: '🏠', desc: '기품 있는 기와지붕과 나무 기둥 한옥' },
@@ -572,58 +643,41 @@
       return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
     }
 
-    // 강아지별 개별 컨디션 게이지 (hunger: 배부름 0~100, fun: 놀이만족 0~100, love: 애정도 0~100)
-    let dogs = JSON.parse(localStorage.getItem('dp_dogs_v3') || 'null') || [
+    let dogs = JSON.parse(localStorage.getItem('dp_dogs_v4') || 'null') || [
       {
-        id: 'dog1', name: '백설기', breed: '비숑 프리제', age: '2살',
+        id: 'dog1', name: '백설기', breed: '비숑 프리제', age: '2살', town: '부산광역시',
         intro: '한옥 마당에서 뛰어노는 찹쌀떡 백설기예요! ☁️',
         score: 48, bodyColor: '#ffffff', darkColor: '#e2dcd0',
         photo: createCuteDogAvatar('#d8f3dc', '#e9ecef', '#ffffff', '#ffafcc'),
         x: 0.36, y: 0.56, targetX: 0.45, targetY: 0.58, isUser: false,
-        hunger: 75, fun: 35, love: 65,
-        notes: ['선비 갓 쓰니까 너무 귀엽다!', '부산 북구 1등 가즈아!!']
+        hunger: 75, fun: 35, love: 65, isPlayingToy: false, playPhase: 0,
+        notes: ['선비 갓 쓰니까 너무 귀엽다!', '부산광역시 1등 가즈아!!']
       },
       {
-        id: 'dog2', name: '인절미', breed: '시바견', age: '3살',
+        id: 'dog2', name: '인절미', breed: '시바견', age: '3살', town: '서울특별시',
         intro: '초가집이 잘 어울리는 구수한 인절미입니다 🐕',
         score: 42, bodyColor: '#e69d45', darkColor: '#b0651d',
         photo: createCuteDogAvatar('#ffedd8', '#b0651d', '#e69d45', '#ff758f'),
         x: 0.64, y: 0.54, targetX: 0.58, targetY: 0.60, isUser: false,
-        hunger: 30, fun: 40, love: 55, // 배가 고픈 상태라 놀이보다 밥(개껌)을 원함
+        hunger: 30, fun: 40, love: 55, isPlayingToy: false, playPhase: 0,
         notes: ['볼살 한 번만 만져보고 싶다 ㅠㅠ']
       },
       {
-        id: 'dog3', name: '약과', breed: '포메라니안', age: '3살',
+        id: 'dog3', name: '약과', breed: '포메라니안', age: '3살', town: '경기도',
         intro: '달콤한 약과처럼 사랑스러운 댕댕이에요 ❤️',
         score: 39, bodyColor: '#f4a261', darkColor: '#bc6c25',
         photo: createCuteDogAvatar('#fde4cf', '#bc6c25', '#f4a261', '#ff8fa3'),
         x: 0.5, y: 0.66, targetX: 0.55, targetY: 0.68, isUser: false,
-        hunger: 80, fun: 92, love: 70, // 놀이 게이지가 꽉 차서 장난감을 안 가지고 놈
+        hunger: 80, fun: 92, love: 70, isPlayingToy: false, playPhase: 0,
         notes: ['한옥마을 마스코트!']
-      },
-      {
-        id: 'dog4', name: '순두부', breed: '말티즈', age: '4살',
-        intro: '참지 않는 조선 말티즈 순두부! 대감집 노립니다 🔥',
-        score: 31, bodyColor: '#fffdf9', darkColor: '#dfd3c3',
-        photo: createCuteDogAvatar('#e2ece9', '#d5bdaf', '#fffdf9', '#ffb3c6'),
-        x: 0.28, y: 0.66, targetX: 0.35, targetY: 0.64, isUser: false,
-        hunger: 65, fun: 25, love: 50,
-        notes: []
       }
     ];
 
-    dogs.forEach((d, idx) => {
-      if (typeof d.x !== 'number') {
-        d.x = 0.28 + idx * 0.14;
-        d.y = 0.54 + (idx % 2) * 0.10;
-        d.targetX = d.x + 0.05;
-        d.targetY = d.y + 0.04;
-      }
+    dogs.forEach((d) => {
+      if (!d.town) d.town = '부산광역시';
       if (typeof d.hunger !== 'number') d.hunger = 65;
       if (typeof d.fun !== 'number') d.fun = 45;
       if (typeof d.love !== 'number') d.love = 60;
-      d.isPlayingToy = false;
-      d.playPhase = 0;
     });
 
     const dogImages = {};
@@ -641,21 +695,21 @@
     function saveData() {
       localStorage.setItem('dp_snacks', snacks);
       localStorage.setItem('dp_coins', coins);
-      localStorage.setItem('dp_dogs', JSON.stringify(dogs));
+      localStorage.setItem('dp_dogs_v4', JSON.stringify(dogs));
       localStorage.setItem('dp_hanok_owned_v3', JSON.stringify(ownedItems));
       localStorage.setItem('dp_hanok_house', equippedHouse);
       localStorage.setItem('dp_hanok_toy_v3', equippedToy);
       localStorage.setItem('dp_hanok_acc', equippedAcc);
       localStorage.setItem('dp_town', myTown);
-      localStorage.setItem('dp_town_count', myTownCount);
 
       document.getElementById('snackCount').textContent = snacks;
       document.getElementById('coinCount').textContent = coins;
       document.getElementById('myTownName').textContent = myTown;
-      document.getElementById('myTownCount').textContent = myTownCount;
+      document.getElementById('myTownCount').textContent = townStats[myTown] || 171;
       const shopCoinEl = document.getElementById('shopCoinDisplay');
       if (shopCoinEl) shopCoinEl.textContent = coins;
       updateRankingBoard();
+      syncToCloud();
     }
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -684,21 +738,15 @@
     }
 
     function openTownBattleModal() {
-      const towns = [
-        { name: myTown, count: myTownCount, isMine: true },
-        { name: '경남 양산시', count: 168, isMine: false },
-        { name: '경남 김해시', count: 149, isMine: false },
-        { name: '부산 해운대구', count: 134, isMine: false },
-        { name: '경남 창원시', count: 121, isMine: false }
-      ].sort((a, b) => b.count - a.count);
+      const sortedTowns = Object.entries(townStats).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
 
-      document.getElementById('townBattleList').innerHTML = towns.map((t, idx) => `
-        <div class="flex items-center justify-between p-2.5 rounded-xl border-2 ${t.isMine ? 'bg-amber-100 border-amber-600' : 'bg-white border-stone-200'}">
+      document.getElementById('townBattleList').innerHTML = sortedTowns.map((t, idx) => `
+        <div class="flex items-center justify-between p-2.5 rounded-xl border-2 ${t.name === myTown ? 'bg-amber-100 border-amber-600' : 'bg-white border-stone-200'}">
           <div class="flex items-center gap-2">
             <span class="font-jua text-sm ${idx === 0 ? 'text-rose-600' : 'text-stone-600'}">${idx + 1}위</span>
-            <span class="font-bold text-sm text-stone-900">${t.name} ${t.isMine ? '(우리 동네)' : ''}</span>
+            <span class="font-bold text-sm text-stone-900">${t.name} ${t.name === myTown ? '(우리 도시)' : ''}</span>
           </div>
-          <span class="font-jua text-sm text-emerald-700">${t.count}채 입주</span>
+          <span class="font-jua text-sm text-emerald-700">${t.count}마리</span>
         </div>
       `).join('');
       document.getElementById('townBattleModal').classList.remove('hidden');
@@ -787,7 +835,6 @@
       }
       if (item.category === 'toy') {
         equippedToy = itemId;
-        // 기존 놀이 상태 초기화 후, 정원(capacity)만큼만 놀이 게이지가 낮은 순으로 초대!
         dogs.forEach(d => { d.isPlayingToy = false; d.playPhase = 0; });
         if (itemId !== 'toy_none' && item.capacity > 0) {
           const candidates = dogs
@@ -1091,7 +1138,6 @@
         return;
       }
 
-      // 놀이기구 직접 터치 시: 정원이 비어있으면 놀이 게이지가 낮은 강아지 1마리만 호출!
       if (equippedToy !== 'toy_none') {
         const tyX = width * TOY_POS.x, tyY = height * TOY_POS.y;
         if (Math.hypot(tyX - clickX * width, tyY - clickY * height) < 52) {
@@ -1287,7 +1333,6 @@
       ctx.fillText('우리 한옥집 🏯', x, y + 42);
     }
 
-    // --- 놀이기구 렌더링 (원목 미끄럼틀 / 단오 한옥 꽃그네 / 장독대 / 연못) ---
     function drawHanokYardToyBase(x, y, playingDogs) {
       if (equippedToy === 'toy_none') return;
       const isPlaying = playingDogs.length > 0;
@@ -1295,19 +1340,15 @@
       ctx.beginPath(); ctx.ellipse(x, y + 20, 34, 12, 0, 0, Math.PI * 2); ctx.fill();
 
       if (equippedToy === 'toy_slide') {
-        // 1. 원목 댕댕 미끄럼틀 (좌측 사다리 기둥 + 우측 미끄럼판)
         ctx.fillStyle = '#8c583a';
         ctx.strokeStyle = '#4a3525';
         ctx.lineWidth = 2;
-        // 뒷기둥 & 사다리
         ctx.fillRect(x - 28, y - 28, 14, 48); ctx.strokeRect(x - 28, y - 28, 14, 48);
-        // 사다리 계단 발판
         ctx.strokeStyle = '#deb887';
         ctx.lineWidth = 2.5;
         for (let sy = -18; sy <= 12; sy += 10) {
           ctx.beginPath(); ctx.moveTo(x - 26, y + sy); ctx.lineTo(x - 16, y + sy); ctx.stroke();
         }
-        // 미끄럼판 (파란색/황토색 경사 슬라이드)
         ctx.fillStyle = '#4ea8de';
         ctx.strokeStyle = '#1d3557';
         ctx.lineWidth = 2;
@@ -1319,19 +1360,15 @@
         ctx.closePath();
         ctx.fill(); ctx.stroke();
       } else if (equippedToy === 'toy_swing') {
-        // 2. 단오 한옥 꽃그네 (A자형 붉은 나무 기둥 + 상단 들보)
         ctx.strokeStyle = '#9e2a2b';
         ctx.lineWidth = 5;
         ctx.lineCap = 'round';
-        // 왼쪽/오른쪽 A형 기둥
         ctx.beginPath(); ctx.moveTo(x - 26, y + 20); ctx.lineTo(x - 18, y - 34); ctx.lineTo(x - 10, y + 20); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(x + 10, y + 20); ctx.lineTo(x + 18, y - 34); ctx.lineTo(x + 26, y + 20); ctx.stroke();
-        // 상단 가로 들보
         ctx.strokeStyle = '#582f0e';
         ctx.lineWidth = 6;
         ctx.beginPath(); ctx.moveTo(x - 24, y - 34); ctx.lineTo(x + 24, y - 34); ctx.stroke();
 
-        // 그네 줄 & 발판 (강아지가 타면 앞뒤 스윙!)
         const swingOffset = isPlaying ? Math.sin(frame * 0.14) * 14 : Math.sin(frame * 0.04) * 3;
         ctx.strokeStyle = '#deb887';
         ctx.lineWidth = 2;
@@ -1374,7 +1411,6 @@
         }
       }
 
-      // 놀이기구 정원 상태 표지판
       const toyMeta = SHOP_CATALOG.find(item => item.id === equippedToy);
       const cap = toyMeta ? toyMeta.capacity : 1;
       ctx.fillStyle = 'rgba(253,248,238,0.94)';
@@ -1390,7 +1426,6 @@
       frame++;
       ctx.clearRect(0, 0, width, height);
 
-      // 1. 연두 잔디 & 한옥 안마당 광장
       ctx.fillStyle = '#8ab858';
       ctx.fillRect(0, 0, width, height);
 
@@ -1402,7 +1437,6 @@
       ctx.fill();
       ctx.stroke();
 
-      // 2. 격자 도로 & 횡단보도
       const drawRoadWithCrosswalk = (ry) => {
         ctx.fillStyle = '#5c6066';
         ctx.fillRect(0, ry - 18, width, 36);
@@ -1423,11 +1457,9 @@
       drawRoadWithCrosswalk(height * 0.30);
       drawRoadWithCrosswalk(height * 0.75);
 
-      // 3. 강아지 컨디션 게이지 자연 감소 & 놀이기구 정원(1~2마리) 자율 매칭 로직
       const toyMeta = SHOP_CATALOG.find(x => x.id === equippedToy);
       const toyCapacity = (equippedToy !== 'toy_none' && toyMeta) ? toyMeta.capacity : 0;
 
-      // 주기적으로 배고픔/놀이 게이지가 서서히 줄어들어 순환 생태계 유지
       if (frame % 180 === 0) {
         dogs.forEach(d => {
           d.hunger = Math.max(15, d.hunger - 1);
@@ -1435,7 +1467,6 @@
         });
       }
 
-      // 놀이기구 정원이 비어있으면, 배고프지 않고(hunger >= 35) 놀이 게이지가 낮은(fun < 75) 강아지 1마리만 추가 배정
       if (toyCapacity > 0) {
         const activePlayers = dogs.filter(d => d.isPlayingToy);
         if (activePlayers.length < toyCapacity && Math.random() < 0.015) {
@@ -1453,15 +1484,12 @@
         dogs.forEach(d => { d.isPlayingToy = false; });
       }
 
-      // 각 강아지 이동 및 놀이기구(미끄럼틀/그네/장독대/연못) 전용 모션 업데이트
       dogs.forEach((d, idx) => {
         if (d.isPlayingToy && toyCapacity > 0) {
-          // 놀이기구별 전용 위치 및 모션 계산
           let destX = TOY_POS.x + (d.playSlot === 1 ? 0.06 : -0.04);
           let destY = TOY_POS.y + 0.04;
 
           if (equippedToy === 'toy_slide') {
-            // 미끄럼틀 사이클: 계단 올라가기(0~40) -> 꼭대기(40~55) -> 슝 미끄러져 내려오기(55~95)
             d.playPhase = (d.playPhase + 1) % 110;
             if (d.playPhase < 40) {
               const t = d.playPhase / 40;
@@ -1485,7 +1513,6 @@
             d.y += (destY - d.y) * 0.14;
             d.walkBounce = (d.playPhase >= 55 && d.playPhase < 95) ? 4 : Math.abs(Math.sin(frame * 0.25)) * 5;
           } else if (equippedToy === 'toy_swing') {
-            // 한옥 꽃그네: 그네 발판 위에 올라타서 앞뒤로 스윙!
             const swingOffset = Math.sin(frame * 0.14) * (14 / width);
             destX = TOY_POS.x + swingOffset;
             destY = TOY_POS.y + 0.01;
@@ -1494,14 +1521,12 @@
             d.facing = Math.cos(frame * 0.14) >= 0 ? 1 : -1;
             d.walkBounce = Math.abs(Math.sin(frame * 0.14)) * 8;
           } else {
-            // 장독대 / 연꽃 연못 주변에서 폴짝폴짝
             d.x += (destX - d.x) * 0.05;
             d.y += (destY - d.y) * 0.05;
             d.walkBounce = Math.abs(Math.sin(frame * 0.26 + idx)) * 10;
             if (frame % 50 === 0) d.facing = (d.facing || 1) * -1;
           }
 
-          // 놀면서 놀이 게이지(fun) 상승! 100%가 되면 만족하고 놀이터를 떠남
           if (frame % 18 === 0) {
             d.fun = Math.min(100, d.fun + 2);
             if (Math.random() < 0.35) {
@@ -1520,7 +1545,6 @@
             }
           }
         } else {
-          // 일반 자유 산책 모드
           const dx = d.targetX - d.x;
           const dy = d.targetY - d.y;
           if (Math.hypot(dx, dy) > 0.006) {
@@ -1547,7 +1571,6 @@
       drawHanokMainHouse(width * 0.24, height * 0.45);
       drawHanokYardToyBase(width * TOY_POS.x, height * TOY_POS.y, currentlyPlayingDogs);
 
-      // 4. 복주머니 보물함
       if (treasureChest.active) {
         treasureChest.bob = Math.sin(frame * 0.08) * 3;
         const tx = treasureChest.x * width;
@@ -1584,7 +1607,6 @@
         player.bounce = 0;
       }
 
-      // 5. Y좌표 깊이 정렬
       const renderList = [
         ...lowPolyTrees.map(t => ({ type: 'tree', y: t.y, data: t })),
         ...dogs.map(d => ({ type: 'dog', y: d.y, data: d })),
@@ -1625,7 +1647,7 @@
       const interactBtn = document.getElementById('interactBtn');
       if (nearestDog && document.getElementById('realWorldWalkView').classList.contains('hidden')) {
         interactBtn.classList.remove('hidden');
-        document.getElementById('interactLabel').textContent = `📛 ${nearestDog.name} 호패·게이지 보기`;
+        document.getElementById('interactLabel',).textContent = `📛 ${nearestDog.name} 호패·게이지 보기`;
       } else {
         interactBtn.classList.add('hidden');
       }
@@ -1727,7 +1749,6 @@
       ctx.restore();
     }
 
-    // --- 대두 SD 강아지 + 머리 위 미니 배고픔/놀이 게이지 바 렌더링 ---
     function drawChibiBigHeadDog2D(x, y, dog) {
       const dir = dog.facing || 1;
       const furMain = dog.bodyColor || '#fff3b0';
@@ -1828,7 +1849,6 @@
         drawTraditionalHatOnDog(headX, headY, equippedAcc);
       }
 
-      // 호패 이름표 + 미니 컨디션 게이지 바 (배부름 주황 / 놀이만족 초록)
       const badgeOffsetY = (isTargetDog && equippedAcc !== 'none') ? -60 : -50;
       ctx.fillStyle = 'rgba(253, 248, 238, 0.96)';
       ctx.beginPath(); ctx.roundRect(headX - 33, headY + badgeOffsetY, 66, 23, 8); ctx.fill();
@@ -1841,28 +1861,23 @@
       ctx.textAlign = 'center';
       ctx.fillText(`${dog.name} ♥${dog.score}`, headX, headY + badgeOffsetY + 11);
 
-      // 미니 게이지 2줄 (좌: 배부름, 우: 놀이)
       const barY = headY + badgeOffsetY + 15;
-      // 배부름 바 (좌측 28px)
       ctx.fillStyle = '#e5e7eb';
       ctx.fillRect(headX - 29, barY, 27, 4);
       ctx.fillStyle = dog.hunger < 35 ? '#ef4444' : '#f59e0b';
       ctx.fillRect(headX - 29, barY, 27 * (dog.hunger / 100), 4);
 
-      // 놀이 바 (우측 28px)
       ctx.fillStyle = '#e5e7eb';
       ctx.fillRect(headX + 2, barY, 27, 4);
       ctx.fillStyle = '#10b981';
       ctx.fillRect(headX + 2, barY, 27 * (dog.fun / 100), 4);
 
-      // 배고픔 상태 말풍선 아이콘 (hunger < 35일 때)
       if (dog.hunger < 35) {
         ctx.font = '14px sans-serif';
         ctx.fillText('🍖?', headX + 34, headY - 12);
       }
     }
 
-    // --- 반응형 리액션 캔버스 ---
     const rCanvas = document.getElementById('reactionCanvas');
     const rCtx = rCanvas.getContext('2d');
     let squishX = 1, squishY = 1;
@@ -2170,11 +2185,12 @@
       const selectedTown = document.getElementById('regTown').value;
 
       myTown = selectedTown;
-      myTownCount += 1;
+      townStats[selectedTown] = (townStats[selectedTown] || 100) + 1;
 
       const newDog = {
         id: 'user_' + Date.now(),
         name, breed, age, intro,
+        town: selectedTown,
         score: 10,
         bodyColor: uploadedPhotoData ? extractedFurColor : '#fff3b0',
         darkColor: uploadedPhotoData ? extractedFurDarkColor : '#e0c070',
@@ -2274,7 +2290,7 @@
     }
 
     function openSnackChargeModal() {
-      document.getElementById('snackChargeModal').classList.remove('hidden');
+      document.getElementById('snackChargeModal').classList.add('hidden');
     }
 
     function watchAdForSnacks() {
