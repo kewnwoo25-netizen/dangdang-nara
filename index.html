@@ -524,7 +524,6 @@
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
     // --- Firebase 멀티플레이 설정 (공용 공개 무료 Firebase Realtime Database 연동) ---
-    // 같은 Netlify 또는 GitHub Pages 링크로 접속한 모든 친구들이 실시간으로 강아지, 방명록, 랭킹을 공유합니다!
     const firebaseConfig = {
       databaseURL: "https://dangdang-nara-default-rtdb.firebaseio.com/"
     };
@@ -534,7 +533,6 @@
       const db = firebase.database();
       isMultiplayerConnected = true;
 
-      // 실시간 데이터 동기화 리스너
       db.ref("worldData").on("value", (snapshot) => {
         const remoteData = snapshot.val();
         if (remoteData) {
@@ -643,13 +641,13 @@
       return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
     }
 
-    let dogs = JSON.parse(localStorage.getItem('dp_dogs_v4') || 'null') || [
+    let dogs = JSON.parse(localStorage.getItem('dp_dogs_v5') || 'null') || [
       {
         id: 'dog1', name: '백설기', breed: '비숑 프리제', age: '2살', town: '부산광역시',
         intro: '한옥 마당에서 뛰어노는 찹쌀떡 백설기예요! ☁️',
         score: 48, bodyColor: '#ffffff', darkColor: '#e2dcd0',
         photo: createCuteDogAvatar('#d8f3dc', '#e9ecef', '#ffffff', '#ffafcc'),
-        x: 0.36, y: 0.56, targetX: 0.45, targetY: 0.58, isUser: false,
+        x: 0.36, y: 0.56, targetX: 0.45, targetY: 0.58, isUser: true,
         hunger: 75, fun: 35, love: 65, isPlayingToy: false, playPhase: 0,
         notes: ['선비 갓 쓰니까 너무 귀엽다!', '부산광역시 1등 가즈아!!']
       },
@@ -695,7 +693,7 @@
     function saveData() {
       localStorage.setItem('dp_snacks', snacks);
       localStorage.setItem('dp_coins', coins);
-      localStorage.setItem('dp_dogs_v4', JSON.stringify(dogs));
+      localStorage.setItem('dp_dogs_v5', JSON.stringify(dogs));
       localStorage.setItem('dp_hanok_owned_v3', JSON.stringify(ownedItems));
       localStorage.setItem('dp_hanok_house', equippedHouse);
       localStorage.setItem('dp_hanok_toy_v3', equippedToy);
@@ -1647,7 +1645,7 @@
       const interactBtn = document.getElementById('interactBtn');
       if (nearestDog && document.getElementById('realWorldWalkView').classList.contains('hidden')) {
         interactBtn.classList.remove('hidden');
-        document.getElementById('interactLabel',).textContent = `📛 ${nearestDog.name} 호패·게이지 보기`;
+        document.getElementById('interactLabel').textContent = `📛 ${nearestDog.name} 호패·게이지 보기`;
       } else {
         interactBtn.classList.add('hidden');
       }
@@ -1838,44 +1836,30 @@
       }
       ctx.restore();
 
-      ctx.strokeStyle = dog.isUser ? '#ffb703' : '#4a3525';
-      ctx.lineWidth = dog.isUser ? 3.5 : 2.2;
+      // 내가 등록한 강아지인 경우, 테두리를 반짝이는 금색/빨간색으로 두르고 "내 강아지 🌟" 배지 표시
+      const isMine = dog.isUser;
+      ctx.strokeStyle = isMine ? '#ff4d6d' : '#ffb703';
+      ctx.lineWidth = isMine ? 4 : 2.2;
       ctx.beginPath();
       ctx.arc(headX, headY, 25, 0, Math.PI * 2);
       ctx.stroke();
 
-      const isTargetDog = dog.isUser || (!dogs.some(x => x.isUser) && dog.id === 'dog1');
+      const isTargetDog = isMine || (!dogs.some(x => x.isUser) && dog.id === 'dog1');
       if (isTargetDog && equippedAcc !== 'none') {
         drawTraditionalHatOnDog(headX, headY, equippedAcc);
       }
 
-      const badgeOffsetY = (isTargetDog && equippedAcc !== 'none') ? -60 : -50;
-      ctx.fillStyle = 'rgba(253, 248, 238, 0.96)';
-      ctx.beginPath(); ctx.roundRect(headX - 33, headY + badgeOffsetY, 66, 23, 8); ctx.fill();
-      ctx.strokeStyle = '#7c583a';
-      ctx.lineWidth = 1.4;
+      const badgeOffsetY = (isTargetDog && equippedAcc !== 'none') ? -62 : -52;
+      ctx.fillStyle = isMine ? '#ffe5ec' : 'rgba(253, 248, 238, 0.96)';
+      ctx.beginPath(); ctx.roundRect(headX - 38, headY + badgeOffsetY, 76, 23, 8); ctx.fill();
+      ctx.strokeStyle = isMine ? '#ff4d6d' : '#7c583a';
+      ctx.lineWidth = 1.6;
       ctx.stroke();
 
-      ctx.fillStyle = '#2d1e14';
+      ctx.fillStyle = isMine ? '#9b111e' : '#2d1e14';
       ctx.font = 'bold 10.5px Jua';
       ctx.textAlign = 'center';
-      ctx.fillText(`${dog.name} ♥${dog.score}`, headX, headY + badgeOffsetY + 11);
-
-      const barY = headY + badgeOffsetY + 15;
-      ctx.fillStyle = '#e5e7eb';
-      ctx.fillRect(headX - 29, barY, 27, 4);
-      ctx.fillStyle = dog.hunger < 35 ? '#ef4444' : '#f59e0b';
-      ctx.fillRect(headX - 29, barY, 27 * (dog.hunger / 100), 4);
-
-      ctx.fillStyle = '#e5e7eb';
-      ctx.fillRect(headX + 2, barY, 27, 4);
-      ctx.fillStyle = '#10b981';
-      ctx.fillRect(headX + 2, barY, 27 * (dog.fun / 100), 4);
-
-      if (dog.hunger < 35) {
-        ctx.font = '14px sans-serif';
-        ctx.fillText('🍖?', headX + 34, headY - 12);
-      }
+      ctx.fillText(isMine ? `⭐ 내 강아지(${dog.name})` : `${dog.name} ♥${dog.score}`, headX, headY + badgeOffsetY + 15);
     }
 
     const rCanvas = document.getElementById('reactionCanvas');
@@ -2082,8 +2066,8 @@
 
     function openDogProfile(dog) {
       activeModalDog = dog;
-      document.getElementById('modalDogName').textContent = dog.name;
-      document.getElementById('modalDogInfo').textContent = `${dog.breed} · ${dog.age}`;
+      document.getElementById('modalDogName').textContent = (dog.isUser ? '⭐ [내 강아지] ' : '') + dog.name;
+      document.getElementById('modalDogInfo').textContent = `${dog.breed} · ${dog.age} (${dog.town || '부산광역시'})`;
       document.getElementById('modalDogSpeech').textContent = `“${dog.intro}”`;
       updateProfileGaugesUI(dog);
       renderGuestbook();
@@ -2122,7 +2106,7 @@
       const medals = ['🥇', '🥈', '🥉'];
       document.getElementById('topRankingList').innerHTML = sorted.map((d, idx) => `
         <div onclick="openDogProfile(dogs.find(x=>x.id==='${d.id}'))" class="cursor-pointer flex items-center justify-between bg-amber-50/90 hover:bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300">
-          <span class="font-bold text-stone-900 truncate">${medals[idx]} ${d.name}</span>
+          <span class="font-bold text-stone-900 truncate">${medals[idx]} ${d.isUser ? '⭐' : ''}${d.name}</span>
           <span class="font-jua text-rose-600">${d.score}점</span>
         </div>
       `).join('');
@@ -2183,6 +2167,9 @@
       const age = document.getElementById('regAge').value.trim() || '1살';
       const intro = document.getElementById('regIntro').value.trim() || '한옥마을에 새로 입주했어요! 🐾';
       const selectedTown = document.getElementById('regTown').value;
+
+      // 기존 내 강아지 마크 해제 후 새로 등록한 강아지를 '내 강아지(isUser: true)'로 설정
+      dogs.forEach(d => d.isUser = false);
 
       myTown = selectedTown;
       townStats[selectedTown] = (townStats[selectedTown] || 100) + 1;
@@ -2309,7 +2296,7 @@
     }
 
     saveData();
-    if (attendedToday) document.getElementById('attendDot').classList.add('hidden');
+    if (attendedToday) document.getElementById('attendDot'].classList.add('hidden');
     draw();
   </script>
 </body>
