@@ -3,12 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>한옥풍 로우폴리 마을 & 대두 댕댕이 멀티플레이 놀이터</title>
+  <title>한옥풍 로우폴리 마을 & 대두 댕댕이 놀이터</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Firebase SDK (다른 사람들과 실시간 멀티플레이 및 방명록·랭킹 동기화용) -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -22,6 +19,7 @@
     .font-jua { font-family: 'Jua', sans-serif; }
     canvas#gameCanvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
+    /* 한옥 전통 창살/목재 스타일 패널 */
     .hanok-panel {
       background: #fdf8ee;
       border: 3px solid #4a3525;
@@ -100,15 +98,6 @@
   <!-- 로우폴리 한옥 마을 쿼터뷰 캔버스 -->
   <canvas id="gameCanvas"></canvas>
 
-  <!-- 실시간 멀티플레이 접속 알림 배너 -->
-  <div id="multiplayerBanner" class="fixed top-14 left-3 right-3 z-30 flex justify-center pointer-events-none">
-    <div class="bg-emerald-900/90 text-emerald-100 px-4 py-1.5 rounded-full text-xs font-bold border border-emerald-400 shadow-lg flex items-center gap-2 pointer-events-auto">
-      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-      <span>🌐 실시간 멀티플레이 연동됨 (친구와 같은 링크 접속 시 함께 플레이!)</span>
-      <button onclick="shareLink()" class="bg-emerald-500 text-white px-2 py-0.5 rounded text-[10px] ml-1">링크복사</button>
-    </div>
-  </div>
-
   <!-- 포켓몬고 스타일 실제 동네 3D 건물 GPS 산책 뷰 -->
   <div id="realWorldWalkView" class="hidden fixed inset-0 z-10 bg-sky-100">
     <div id="map3d" class="w-full h-full"></div>
@@ -150,19 +139,21 @@
     </div>
   </div>
 
-  <!-- 한옥마을 상단 HUD -->
+  <!-- 한옥마을 상단 HUD (동네별 입주 대항전 + 주간 TOP 3) -->
   <div id="parkHud" class="fixed top-2.5 left-2.5 right-2.5 z-20 flex flex-col gap-1.5 pointer-events-none">
+    <!-- 첨부 이미지 스타일: 지역별 입주 대항전 상단 바 -->
     <div class="flex items-center justify-between gap-1.5 pointer-events-auto">
       <button onclick="openTownBattleModal()" class="bg-[#2a211b]/90 text-white px-3 py-1.5 rounded-xl border border-amber-400/60 shadow flex items-center gap-1.5 text-xs font-jua">
-        <span class="text-amber-300">🏮 <span id="myTownName">부산광역시</span></span>
+        <span class="text-amber-300">🏮 <span id="myTownName">부산 북구</span></span>
         <span class="bg-rose-600 text-white px-1.5 py-0.2 rounded text-[11px]"><span id="myTownCount">171</span>마리</span>
       </button>
       <div class="bg-[#2a211b]/85 text-amber-100 px-2.5 py-1 rounded-full text-[10px] font-bold border border-stone-600 shadow">
-        VS <span class="text-amber-300">서울특별시 214마리</span> 🔥
+        VS <span class="text-amber-300">김해시 149마리</span> 🔥
       </div>
     </div>
 
     <div class="flex items-start justify-between gap-2">
+      <!-- 주간 인기 TOP 3 전광판 -->
       <div class="hanok-panel px-3 py-2 pointer-events-auto flex-1 max-w-[235px]">
         <div class="flex items-center justify-between mb-1">
           <span class="font-jua text-xs text-stone-900 flex items-center gap-1">
@@ -175,6 +166,7 @@
         <div id="topRankingList" class="space-y-1 text-xs"></div>
       </div>
 
+      <!-- 우측 재화(엽전 코인 / 개껌 간식) 및 출석체크 -->
       <div class="flex flex-col items-end gap-1.5 pointer-events-auto">
         <div class="flex items-center gap-1.5">
           <button onclick="openAttendanceModal()" class="ac-btn bg-amber-400 text-stone-950 font-jua text-xs px-3 py-1.5 rounded-full border-2 border-stone-800 flex items-center gap-1 relative">
@@ -246,84 +238,54 @@
     </button>
   </div>
 
-  <!-- 1. 강아지 호패 & 상태 게이지 모달 -->
+  <!-- 1. 강아지 호패(명찰) & 반응형 리액션 모달 -->
   <div id="profileModal" class="hidden fixed inset-0 z-40 bg-black/55 flex items-center justify-center p-4">
     <div class="hanok-panel w-full max-w-sm p-5 relative animate-pop max-h-[88vh] overflow-y-auto">
       <button onclick="closeModal('profileModal')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-600 text-white font-bold border-2 border-rose-900 flex items-center justify-center">✕</button>
 
-      <div class="text-center mb-2.5">
+      <div class="text-center mb-3">
         <span class="hanok-badge px-3 py-0.5 text-xs font-bold">한옥마을 강아지 호패 📛</span>
-        <h2 id="modalDogName" class="font-jua text-2xl text-stone-900 mt-1">백설기</h2>
-        <p id="modalDogInfo" class="text-xs text-stone-700 font-medium">비숑 프리제 · 2살</p>
+        <h2 id="modalDogName" class="font-jua text-2xl text-stone-900 mt-1">코코</h2>
+        <p id="modalDogInfo" class="text-xs text-stone-700 font-medium">포메라니안 · 3살</p>
       </div>
 
       <div class="relative bg-[#efe3cc] rounded-2xl p-3 border-2 border-[#b5895a] flex flex-col items-center">
-        <canvas id="reactionCanvas" width="200" height="200" class="rounded-full cursor-pointer touch-none"></canvas>
+        <canvas id="reactionCanvas" width="220" height="220" class="rounded-full cursor-pointer touch-none"></canvas>
         <div class="w-full flex justify-between items-center mt-2 px-1">
-          <span class="text-[11px] bg-stone-800/85 text-white px-2.5 py-0.5 rounded-full">문질러 쓰다듬기 🤚</span>
+          <span class="text-[11px] bg-stone-800/85 text-white px-2.5 py-0.5 rounded-full">사진을 문질러 쓰다듬기 🤚</span>
           <span class="text-xs bg-white px-2.5 py-0.5 rounded-full border border-amber-400 font-bold text-stone-900">
             인기 <span id="modalDogScore" class="text-rose-600">0</span>점
           </span>
         </div>
       </div>
 
-      <div class="mt-3 bg-white p-2.5 rounded-xl border border-amber-300 space-y-2">
-        <div>
-          <div class="flex justify-between text-[11px] font-bold text-stone-800 mb-0.5">
-            <span>🍖 배부름 게이지 <span id="hungerStatusTag" class="text-rose-600"></span></span>
-            <span><span id="modalHungerVal">70</span> / 100</span>
-          </div>
-          <div class="w-full h-2.5 bg-stone-200 rounded-full overflow-hidden">
-            <div id="modalHungerBar" class="h-full bg-amber-500 transition-all duration-300" style="width: 70%"></div>
-          </div>
-        </div>
-        <div>
-          <div class="flex justify-between text-[11px] font-bold text-stone-800 mb-0.5">
-            <span>🪁 놀이 만족도 <span id="funStatusTag" class="text-emerald-700"></span></span>
-            <span><span id="modalFunVal">50</span> / 100</span>
-          </div>
-          <div class="w-full h-2.5 bg-stone-200 rounded-full overflow-hidden">
-            <div id="modalFunBar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 50%"></div>
-          </div>
-        </div>
-        <div>
-          <div class="flex justify-between text-[11px] font-bold text-stone-800 mb-0.5">
-            <span>❤️ 쓰다듬기 애정</span>
-            <span><span id="modalLoveVal">60</span> / 100</span>
-          </div>
-          <div class="w-full h-2.5 bg-stone-200 rounded-full overflow-hidden">
-            <div id="modalLoveBar" class="h-full bg-rose-500 transition-all duration-300" style="width: 60%"></div>
-          </div>
-        </div>
+      <div id="modalDogSpeech" class="mt-3 bg-[#f7efe0] border border-[#c7a97e] rounded-xl p-2.5 text-center text-xs text-stone-900 font-medium">
+        “빵실빵실 엉덩이가 매력 포인트인 코코입니다!”
       </div>
 
-      <div id="modalDogSpeech" class="mt-2.5 bg-[#f7efe0] border border-[#c7a97e] rounded-xl p-2 text-center text-xs text-stone-900 font-medium">
-        “한옥 마당에서 뛰어노는 찹쌀떡 백설기예요!”
-      </div>
-
-      <div class="grid grid-cols-2 gap-2.5 mt-2.5">
-        <button id="petBtn" onclick="triggerPetReaction()" class="relative overflow-hidden ac-btn bg-rose-500 text-white font-jua text-sm py-2.5 rounded-2xl border-2 border-rose-800">
-          쓰다듬기 ❤️ (+애정)
+      <div class="grid grid-cols-2 gap-2.5 mt-3">
+        <button id="petBtn" onclick="triggerPetReaction()" class="relative overflow-hidden ac-btn bg-rose-500 text-white font-jua text-base py-3 rounded-2xl border-2 border-rose-800">
+          쓰다듬기 ❤️ (+1냥)
           <div id="petCooldown" class="cooldown-bar"></div>
         </button>
-        <button id="treatBtn" onclick="triggerTreatReaction()" class="relative overflow-hidden ac-btn bg-amber-400 text-stone-950 font-jua text-sm py-2.5 rounded-2xl border-2 border-amber-800">
-          개껌 주기 🦴 (+배부름)
+        <button id="treatBtn" onclick="triggerTreatReaction()" class="relative overflow-hidden ac-btn bg-amber-400 text-stone-950 font-jua text-base py-3 rounded-2xl border-2 border-amber-800">
+          개껌 주기 🦴 (+2냥)
           <div id="treatCooldown" class="cooldown-bar"></div>
         </button>
       </div>
 
-      <div class="mt-3 pt-2.5 border-t border-amber-300/60">
-        <p class="font-jua text-xs text-stone-900 mb-1">💌 대문 방명록 남기기 (실시간 공유)</p>
+      <div class="mt-4 pt-3 border-t border-amber-300/60">
+        <p class="font-jua text-xs text-stone-900 mb-1.5">💌 대문 방명록 남기기</p>
         <div class="flex gap-1.5">
-          <input id="guestbookInput" type="text" maxlength="25" placeholder="한옥집 너무 멋져요!" class="flex-1 text-xs px-3 py-1.5 rounded-xl border border-amber-500 bg-white focus:outline-none" />
-          <button onclick="addGuestbookNote()" class="ac-btn bg-emerald-600 text-white font-jua text-xs px-3 py-1.5 rounded-xl border border-emerald-800">등록</button>
+          <input id="guestbookInput" type="text" maxlength="25" placeholder="한옥집 너무 멋져요! 산책 조심~" class="flex-1 text-xs px-3 py-2 rounded-xl border border-amber-500 bg-white focus:outline-none" />
+          <button onclick="addGuestbookNote()" class="ac-btn bg-emerald-600 text-white font-jua text-xs px-3 py-2 rounded-xl border border-emerald-800">등록</button>
         </div>
-        <div id="guestbookList" class="mt-1.5 space-y-1 max-h-20 overflow-y-auto text-xs"></div>
+        <div id="guestbookList" class="mt-2 space-y-1 max-h-24 overflow-y-auto text-xs"></div>
       </div>
     </div>
   </div>
 
-  <!-- 2. 한옥 상점 모달 -->
+  <!-- 2. 한옥 상점 (초가집 / 기와집 / 대감집 / 전통 장난감 / 갓·족두리) 모달 -->
   <div id="shopModal" class="hidden fixed inset-0 z-40 bg-black/55 flex items-center justify-center p-4">
     <div class="hanok-panel w-full max-w-sm p-5 relative animate-pop max-h-[88vh] flex flex-col">
       <button onclick="closeModal('shopModal')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-600 text-white font-bold border-2 border-rose-900 flex items-center justify-center">✕</button>
@@ -338,25 +300,25 @@
 
       <div class="grid grid-cols-3 gap-1.5 bg-amber-100/80 p-1 rounded-xl border border-amber-400 mb-3">
         <button id="tab_house" onclick="switchShopTab('house')" class="font-jua text-xs py-1.5 rounded-lg bg-amber-400 text-stone-950 shadow-sm">🏯 한옥 주택</button>
-        <button id="tab_toy" onclick="switchShopTab('toy')" class="font-jua text-xs py-1.5 rounded-lg text-stone-800">🛝 놀이기구</button>
+        <button id="tab_toy" onclick="switchShopTab('toy')" class="font-jua text-xs py-1.5 rounded-lg text-stone-800">🪁 마당 놀이</button>
         <button id="tab_acc" onclick="switchShopTab('acc')" class="font-jua text-xs py-1.5 rounded-lg text-stone-800">🎩 전통 의복</button>
       </div>
 
       <div id="shopItemsContainer" class="space-y-2 overflow-y-auto flex-1 pr-1"></div>
 
       <div class="mt-3 pt-2 border-t border-amber-300/60 flex items-center justify-between text-[11px] text-stone-700">
-        <span>💡 미끄럼틀·그네 설치 시 1~2마리씩 차례로 놉니다!</span>
+        <span>💡 쓰다듬기·간식·동네산책으로 엽전 적립!</span>
         <button onclick="closeModal('shopModal'); openSnackChargeModal();" class="underline font-bold text-rose-600">+무료 충전</button>
       </div>
     </div>
   </div>
 
-  <!-- 3. 실제 반려견 사진 등록 & 시/도 단위 도시 선택 모달 -->
+  <!-- 3. 실제 반려견 사진 등록 & 동네 선택 모달 -->
   <div id="registerModal" class="hidden fixed inset-0 z-40 bg-black/55 flex items-center justify-center p-4">
     <div class="hanok-panel w-full max-w-sm p-5 relative animate-pop max-h-[90vh] overflow-y-auto">
       <button onclick="closeModal('registerModal')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-600 text-white font-bold border-2 border-rose-900">✕</button>
       <h3 class="font-jua text-xl text-stone-900 text-center mb-1">📸 한옥마을 대두 댕댕이 입주</h3>
-      <p class="text-xs text-center text-stone-700 mb-3">도시를 선택하고 사진을 올리면 <b>실시간 멀티플레이 맵</b>에 함께 입주해요!</p>
+      <p class="text-xs text-center text-stone-700 mb-3">사진을 올리면 <b>얼굴은 왕크게, 몸통은 쪼꼬맣게</b> 털색까지 자동 분석해 입주시켜 드려요!</p>
 
       <div class="space-y-2.5">
         <div class="flex flex-col items-center">
@@ -377,25 +339,15 @@
             <input id="regName" type="text" maxlength="8" placeholder="예: 몽실이" class="w-full px-3 py-1.5 rounded-xl border-2 border-amber-300 text-sm bg-white" />
           </div>
           <div>
-            <label class="block text-xs font-bold text-stone-800 mb-1">소속 도시 (시/도)</label>
+            <label class="block text-xs font-bold text-stone-800 mb-1">소속 동네 (대항전)</label>
             <select id="regTown" class="w-full px-2.5 py-1.5 rounded-xl border-2 border-amber-300 text-sm bg-white font-bold text-stone-800">
-              <option value="서울특별시">서울특별시</option>
-              <option value="부산광역시">부산광역시</option>
-              <option value="대구광역시">대구광역시</option>
-              <option value="인천광역시">인천광역시</option>
-              <option value="광주광역시">광주광역시</option>
-              <option value="대전광역시">대전광역시</option>
-              <option value="울산광역시">울산광역시</option>
-              <option value="세종특별자치시">세종특별자치시</option>
-              <option value="경기도">경기도</option>
-              <option value="강원특별자치도">강원특별자치도</option>
-              <option value="충청북도">충청북도</option>
-              <option value="충청남도">충청남도</option>
-              <option value="전라북도">전라북도</option>
-              <option value="전라남도">전라남도</option>
-              <option value="경상북도">경상북도</option>
-              <option value="경상남도">경상남도</option>
-              <option value="제주특별자치도">제주특별자치도</option>
+              <option value="부산 북구">부산 북구</option>
+              <option value="부산 해운대구">부산 해운대구</option>
+              <option value="경남 양산시">경남 양산시</option>
+              <option value="경남 김해시">경남 김해시</option>
+              <option value="경남 창원시">경남 창원시</option>
+              <option value="울산 남구">울산 남구</option>
+              <option value="서울 강남구">서울 강남구</option>
             </select>
           </div>
         </div>
@@ -416,20 +368,20 @@
         </div>
 
         <button onclick="submitNewDog()" class="w-full ac-btn bg-emerald-600 text-white font-jua text-lg py-2.5 rounded-2xl border-2 border-emerald-900 mt-1">
-          실시간 멀티마을 입주하기 ✨
+          한옥마을에 대두 캐릭터 입주 ✨
         </button>
       </div>
     </div>
   </div>
 
-  <!-- 4. 도시별 대항전 현황 모달 -->
+  <!-- 4. 동네별 대항전 현황 모달 -->
   <div id="townBattleModal" class="hidden fixed inset-0 z-40 bg-black/55 flex items-center justify-center p-4">
     <div class="hanok-panel w-full max-w-sm p-5 relative animate-pop">
       <button onclick="closeModal('townBattleModal')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-600 text-white font-bold border-2 border-rose-900">✕</button>
       <div class="text-center mb-3">
-        <span class="hanok-badge px-3 py-0.5 text-xs font-bold">전국 도시 대항전 🔥</span>
-        <h3 class="font-jua text-xl text-stone-900 mt-1">🏮 시/도별 실시간 입주 순위</h3>
-        <p class="text-xs text-stone-700">다른 친구들과 함께 접속해 우리 도시의 순위를 올려보세요!</p>
+        <span class="hanok-badge px-3 py-0.5 text-xs font-bold">우리 동네 자존심 대결 🔥</span>
+        <h3 class="font-jua text-xl text-stone-900 mt-1">🏮 실시간 동네별 한옥 입주 순위</h3>
+        <p class="text-xs text-stone-700">1등 동네 입주 강아지 전원에게 보너스 엽전 50냥 지급!</p>
       </div>
       <div id="townBattleList" class="space-y-2 my-3"></div>
     </div>
@@ -458,7 +410,7 @@
     </div>
   </div>
 
-  <!-- 6. 오늘의 점괘 모달 -->
+  <!-- 6. 오늘의 점괘(운세) 모달 -->
   <div id="fortuneModal" class="hidden fixed inset-0 z-40 bg-black/55 flex items-center justify-center p-4">
     <div class="hanok-panel w-full max-w-sm p-5 relative animate-pop text-center">
       <button onclick="closeModal('fortuneModal')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-600 text-white font-bold border-2 border-rose-900">✕</button>
@@ -475,16 +427,16 @@
         </div>
       </div>
 
-      <p class="text-[11px] text-stone-600 mt-3">화면을 캡처해서 인스타 스토리에 올리고 친구들을 초대해보세요!</p>
+      <p class="text-[11px] text-stone-600 mt-3">화면을 캡처해서 인스타 스토리에 올리고 우리 동네 친구들을 모아보세요!</p>
     </div>
   </div>
 
-  <!-- 7. 보유 의복함 모달 -->
+  <!-- 7. 보유 의복함 & 한옥 배치 관리 모달 -->
   <div id="wardrobeModal" class="hidden fixed inset-0 z-40 bg-black/55 flex items-center justify-center p-4">
     <div class="hanok-panel w-full max-w-sm p-5 relative animate-pop text-center max-h-[85vh] overflow-y-auto">
       <button onclick="closeModal('wardrobeModal')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-600 text-white font-bold border-2 border-rose-900">✕</button>
       <h3 class="font-jua text-xl text-stone-900 mb-1">🎩 내 보유 의복함 & 한옥 배치</h3>
-      <p class="text-xs text-stone-700 mb-3">상점에서 구매한 한옥 집, 놀이기구, 전통 모자를 자유롭게 장착하세요!</p>
+      <p class="text-xs text-stone-700 mb-3">상점에서 구매한 한옥 집, 마당 놀이, 전통 모자를 자유롭게 장착하세요!</p>
 
       <div class="text-left space-y-3">
         <div>
@@ -492,7 +444,7 @@
           <div id="ownedHouseList" class="grid grid-cols-2 gap-2"></div>
         </div>
         <div>
-          <p class="font-jua text-xs text-stone-900 mb-1">🛝 마당 놀이기구</p>
+          <p class="font-jua text-xs text-stone-900 mb-1">🪁 마당 놀이기구</p>
           <div id="ownedToyList" class="grid grid-cols-2 gap-2"></div>
         </div>
         <div>
@@ -523,84 +475,29 @@
   <script>
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
-    // --- Firebase 멀티플레이 설정 (공용 공개 무료 Firebase Realtime Database 연동) ---
-    const firebaseConfig = {
-      databaseURL: "https://dangdang-nara-default-rtdb.firebaseio.com/"
-    };
-    let isMultiplayerConnected = false;
-    try {
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.database();
-      isMultiplayerConnected = true;
-
-      db.ref("worldData").on("value", (snapshot) => {
-        const remoteData = snapshot.val();
-        if (remoteData) {
-          if (remoteData.dogs) {
-            dogs = remoteData.dogs;
-            preloadDogImages();
-          }
-          if (remoteData.towns) {
-            townStats = remoteData.towns;
-          }
-        }
-      });
-    } catch (e) {
-      console.log("Firebase fallback to local mode:", e);
-    }
-
-    function syncToCloud() {
-      if (!isMultiplayerConnected) return;
-      try {
-        firebase.database().ref("worldData").set({
-          dogs: dogs,
-          towns: townStats
-        });
-      } catch(e) {}
-    }
-
-    function shareLink() {
-      navigator.clipboard.writeText(window.location.href);
-      alert("게임 링크가 복사되었습니다! 친구에게 카카오톡으로 공유해보세요 🐾");
-    }
-
     let snacks = parseInt(localStorage.getItem('dp_snacks') || '5');
     let coins = parseInt(localStorage.getItem('dp_coins') || '35');
     let soundEnabled = true;
     let timeMode = 0;
     let attendanceDays = parseInt(localStorage.getItem('dp_attend_days') || '2');
     let attendedToday = localStorage.getItem('dp_attended_date') === new Date().toDateString();
-    let myTown = localStorage.getItem('dp_town') || '부산광역시';
+    let myTown = localStorage.getItem('dp_town') || '부산 북구';
+    let myTownCount = parseInt(localStorage.getItem('dp_town_count') || '171');
     let uploadedPhotoData = null;
     let extractedFurColor = '#f4a261';
     let extractedFurDarkColor = '#bc6c25';
 
-    let townStats = {
-      "서울특별시": 214,
-      "부산광역시": 171,
-      "경기도": 165,
-      "경상남도": 128,
-      "대구광역시": 112,
-      "인천광역시": 98,
-      "광주광역시": 85,
-      "대전광역시": 79,
-      "울산광역시": 72,
-      "충청남도": 64,
-      "전라북도": 58,
-      "강원특별자치도": 52
-    };
-
+    // 한옥풍 상점 카탈로그 (초가집 -> 기와집 -> 대감집 -> 궁궐 한옥)
     const SHOP_CATALOG = [
       { id: 'house_choga', category: 'house', name: '정겨운 둥근 초가집', price: 0, icon: '🛖', desc: '황토 벽과 둥근 볏짚 지붕의 아늑한 초가' },
       { id: 'house_giwa', category: 'house', name: '단아한 청기와 한옥', price: 30, icon: '🏠', desc: '기품 있는 기와지붕과 나무 기둥 한옥' },
       { id: 'house_daegam', category: 'house', name: '웅장한 솟을대문 대감집', price: 65, icon: '🏯', desc: '붉은 기둥과 단청이 빛나는 양반가 한옥' },
       { id: 'house_palace', category: 'house', name: '황금 단청 경복궁 정전', price: 120, icon: '👑', desc: '1등 대감 댕댕이를 위한 최고급 궁궐' },
 
-      { id: 'toy_none', category: 'toy', name: '마당 비우기', price: 0, icon: '🌿', desc: '돌담 마당을 깔끔하게 비웁니다', capacity: 0 },
-      { id: 'toy_slide', category: 'toy', name: '원목 댕댕 미끄럼틀', price: 25, icon: '🛝', desc: '최대 2마리가 계단을 올라 슝~ 미끄러져요!', capacity: 2 },
-      { id: 'toy_swing', category: 'toy', name: '단오 한옥 꽃그네', price: 40, icon: '🎐', desc: '1마리가 그네에 올라타 앞뒤로 흔들흔들!', capacity: 1 },
-      { id: 'toy_jangdok', category: 'toy', name: '옹기종기 장독대', price: 50, icon: '🏺', desc: '최대 2마리가 장독 뚜껑을 구경하며 놀아요!', capacity: 2 },
-      { id: 'toy_pond', category: 'toy', name: '연꽃 연못 & 정자', price: 80, icon: '🪷', desc: '최대 2마리가 시원하게 물장구를 쳐요!', capacity: 2 },
+      { id: 'toy_none', category: 'toy', name: '마당 비우기', price: 0, icon: '🌿', desc: '돌담 마당을 깔끔하게 비웁니다' },
+      { id: 'toy_jangdok', category: 'toy', name: '옹기종기 장독대', price: 20, icon: '🏺', desc: '반질반질한 항아리가 모인 전통 장독대' },
+      { id: 'toy_tuho', category: 'toy', name: '민속 투호 & 제기', price: 45, icon: '🎯', desc: '마당에서 즐기는 신나는 전통 놀이' },
+      { id: 'toy_pond', category: 'toy', name: '연꽃 연못 & 정자', price: 80, icon: '🪷', desc: '연꽃이 피어있는 시원한 한옥 연못' },
 
       { id: 'none', category: 'acc', name: '기본 (미착용)', price: 0, icon: '🐶', desc: '자연스러운 본연의 모습' },
       { id: 'bok', category: 'acc', name: '복주머니 머리핀', price: 15, icon: '🧧', desc: '복이 굴러들어오는 빨간 복주머니' },
@@ -610,10 +507,10 @@
       { id: 'king', category: 'acc', name: '임금님 익선관', price: 95, icon: '🔱', desc: '한옥마을 최고 통치자 임금님 모자' }
     ];
 
-    let ownedItems = JSON.parse(localStorage.getItem('dp_hanok_owned_v3') || '["house_choga","toy_none","toy_slide","toy_swing","none","bok","gat"]');
+    let ownedItems = JSON.parse(localStorage.getItem('dp_hanok_owned') || '["house_choga","toy_none","none","bok"]');
     let equippedHouse = localStorage.getItem('dp_hanok_house') || 'house_choga';
-    let equippedToy = localStorage.getItem('dp_hanok_toy_v3') || 'toy_slide';
-    let equippedAcc = localStorage.getItem('dp_hanok_acc') || 'gat';
+    let equippedToy = localStorage.getItem('dp_hanok_toy') || 'toy_none';
+    let equippedAcc = localStorage.getItem('dp_hanok_acc') || 'none';
     let currentShopTab = 'house';
 
     function createCuteDogAvatar(bgColor, earColor, faceColor, cheekColor) {
@@ -641,41 +538,48 @@
       return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
     }
 
-    let dogs = JSON.parse(localStorage.getItem('dp_dogs_v5') || 'null') || [
+    let dogs = JSON.parse(localStorage.getItem('dp_dogs') || 'null') || [
       {
-        id: 'dog1', name: '백설기', breed: '비숑 프리제', age: '2살', town: '부산광역시',
+        id: 'dog1', name: '백설기', breed: '비숑 프리제', age: '2살',
         intro: '한옥 마당에서 뛰어노는 찹쌀떡 백설기예요! ☁️',
         score: 48, bodyColor: '#ffffff', darkColor: '#e2dcd0',
         photo: createCuteDogAvatar('#d8f3dc', '#e9ecef', '#ffffff', '#ffafcc'),
-        x: 0.36, y: 0.56, targetX: 0.45, targetY: 0.58, isUser: true,
-        hunger: 75, fun: 35, love: 65, isPlayingToy: false, playPhase: 0,
-        notes: ['선비 갓 쓰니까 너무 귀엽다!', '부산광역시 1등 가즈아!!']
+        x: 0.36, y: 0.56, targetX: 0.45, targetY: 0.58, isUser: false,
+        notes: ['선비 갓 쓰니까 너무 귀엽다!', '부산 북구 1등 가즈아!!']
       },
       {
-        id: 'dog2', name: '인절미', breed: '시바견', age: '3살', town: '서울특별시',
+        id: 'dog2', name: '인절미', breed: '시바견', age: '3살',
         intro: '초가집이 잘 어울리는 구수한 인절미입니다 🐕',
         score: 42, bodyColor: '#e69d45', darkColor: '#b0651d',
         photo: createCuteDogAvatar('#ffedd8', '#b0651d', '#e69d45', '#ff758f'),
         x: 0.64, y: 0.54, targetX: 0.58, targetY: 0.60, isUser: false,
-        hunger: 30, fun: 40, love: 55, isPlayingToy: false, playPhase: 0,
         notes: ['볼살 한 번만 만져보고 싶다 ㅠㅠ']
       },
       {
-        id: 'dog3', name: '약과', breed: '포메라니안', age: '3살', town: '경기도',
+        id: 'dog3', name: '약과', breed: '포메라니안', age: '3살',
         intro: '달콤한 약과처럼 사랑스러운 댕댕이에요 ❤️',
         score: 39, bodyColor: '#f4a261', darkColor: '#bc6c25',
         photo: createCuteDogAvatar('#fde4cf', '#bc6c25', '#f4a261', '#ff8fa3'),
         x: 0.5, y: 0.66, targetX: 0.55, targetY: 0.68, isUser: false,
-        hunger: 80, fun: 92, love: 70, isPlayingToy: false, playPhase: 0,
         notes: ['한옥마을 마스코트!']
+      },
+      {
+        id: 'dog4', name: '순두부', breed: '말티즈', age: '4살',
+        intro: '참지 않는 조선 말티즈 순두부! 대감집 노립니다 🔥',
+        score: 31, bodyColor: '#fffdf9', darkColor: '#dfd3c3',
+        photo: createCuteDogAvatar('#e2ece9', '#d5bdaf', '#fffdf9', '#ffb3c6'),
+        x: 0.28, y: 0.66, targetX: 0.35, targetY: 0.64, isUser: false,
+        notes: []
       }
     ];
 
-    dogs.forEach((d) => {
-      if (!d.town) d.town = '부산광역시';
-      if (typeof d.hunger !== 'number') d.hunger = 65;
-      if (typeof d.fun !== 'number') d.fun = 45;
-      if (typeof d.love !== 'number') d.love = 60;
+    dogs.forEach((d, idx) => {
+      if (typeof d.x !== 'number') {
+        d.x = 0.28 + idx * 0.14;
+        d.y = 0.54 + (idx % 2) * 0.10;
+        d.targetX = d.x + 0.05;
+        d.targetY = d.y + 0.04;
+      }
     });
 
     const dogImages = {};
@@ -693,21 +597,21 @@
     function saveData() {
       localStorage.setItem('dp_snacks', snacks);
       localStorage.setItem('dp_coins', coins);
-      localStorage.setItem('dp_dogs_v5', JSON.stringify(dogs));
-      localStorage.setItem('dp_hanok_owned_v3', JSON.stringify(ownedItems));
+      localStorage.setItem('dp_dogs', JSON.stringify(dogs));
+      localStorage.setItem('dp_hanok_owned', JSON.stringify(ownedItems));
       localStorage.setItem('dp_hanok_house', equippedHouse);
-      localStorage.setItem('dp_hanok_toy_v3', equippedToy);
+      localStorage.setItem('dp_hanok_toy', equippedToy);
       localStorage.setItem('dp_hanok_acc', equippedAcc);
       localStorage.setItem('dp_town', myTown);
+      localStorage.setItem('dp_town_count', myTownCount);
 
       document.getElementById('snackCount').textContent = snacks;
       document.getElementById('coinCount').textContent = coins;
       document.getElementById('myTownName').textContent = myTown;
-      document.getElementById('myTownCount').textContent = townStats[myTown] || 171;
+      document.getElementById('myTownCount').textContent = myTownCount;
       const shopCoinEl = document.getElementById('shopCoinDisplay');
       if (shopCoinEl) shopCoinEl.textContent = coins;
       updateRankingBoard();
-      syncToCloud();
     }
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -736,15 +640,21 @@
     }
 
     function openTownBattleModal() {
-      const sortedTowns = Object.entries(townStats).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+      const towns = [
+        { name: myTown, count: myTownCount, isMine: true },
+        { name: '경남 양산시', count: 168, isMine: false },
+        { name: '경남 김해시', count: 149, isMine: false },
+        { name: '부산 해운대구', count: 134, isMine: false },
+        { name: '경남 창원시', count: 121, isMine: false }
+      ].sort((a, b) => b.count - a.count);
 
-      document.getElementById('townBattleList').innerHTML = sortedTowns.map((t, idx) => `
-        <div class="flex items-center justify-between p-2.5 rounded-xl border-2 ${t.name === myTown ? 'bg-amber-100 border-amber-600' : 'bg-white border-stone-200'}">
+      document.getElementById('townBattleList').innerHTML = towns.map((t, idx) => `
+        <div class="flex items-center justify-between p-2.5 rounded-xl border-2 ${t.isMine ? 'bg-amber-100 border-amber-600' : 'bg-white border-stone-200'}">
           <div class="flex items-center gap-2">
             <span class="font-jua text-sm ${idx === 0 ? 'text-rose-600' : 'text-stone-600'}">${idx + 1}위</span>
-            <span class="font-bold text-sm text-stone-900">${t.name} ${t.name === myTown ? '(우리 도시)' : ''}</span>
+            <span class="font-bold text-sm text-stone-900">${t.name} ${t.isMine ? '(우리 동네)' : ''}</span>
           </div>
-          <span class="font-jua text-sm text-emerald-700">${t.count}마리</span>
+          <span class="font-jua text-sm text-emerald-700">${t.count}채 입주</span>
         </div>
       `).join('');
       document.getElementById('townBattleModal').classList.remove('hidden');
@@ -826,46 +736,15 @@
     function equipItem(itemId, refresh = true) {
       const item = SHOP_CATALOG.find(x => x.id === itemId);
       if (!item) return;
-
-      if (item.category === 'house') {
-        equippedHouse = itemId;
-        spawnFloatingEmoji(width * 0.24, height * 0.40, `🏯 ${item.name} 완공!`);
-      }
-      if (item.category === 'toy') {
-        equippedToy = itemId;
-        dogs.forEach(d => { d.isPlayingToy = false; d.playPhase = 0; });
-        if (itemId !== 'toy_none' && item.capacity > 0) {
-          const candidates = dogs
-            .filter(d => d.hunger >= 35 && d.fun < 80)
-            .sort((a, b) => a.fun - b.fun)
-            .slice(0, item.capacity);
-
-          candidates.forEach((d, idx) => {
-            d.isPlayingToy = true;
-            d.playSlot = idx;
-            d.playPhase = 0;
-          });
-          if (candidates.length > 0) {
-            spawnFloatingEmoji(width * 0.76, height * 0.42, `🪁 ${candidates.map(c => c.name).join(', ')} 놀이 시작!`);
-          } else {
-            spawnFloatingEmoji(width * 0.76, height * 0.42, `😊 다들 배부르고 신나서 쉬고 있어요!`);
-          }
-        }
-      }
-      if (item.category === 'acc') {
-        equippedAcc = itemId;
-        const targetDog = dogs.find(d => d.isUser) || dogs[0];
-        if (targetDog) {
-          spawnFloatingEmoji(targetDog.x * width, targetDog.y * height - 45, `${item.icon} ${item.name} 착용!`);
-        }
-      }
-
+      if (item.category === 'house') equippedHouse = itemId;
+      if (item.category === 'toy') equippedToy = itemId;
+      if (item.category === 'acc') equippedAcc = itemId;
       saveData();
       updateMapDogAppearance();
       playTone(660, 'sine', 0.1);
       if (refresh) {
-        if (!document.getElementById('shopModal').classList.contains('hidden')) switchShopTab(currentShopTab);
-        if (!document.getElementById('wardrobeModal').classList.contains('hidden')) renderWardrobeLists();
+        switchShopTab(currentShopTab);
+        renderWardrobeLists();
       }
     }
 
@@ -1085,7 +964,7 @@
     }
 
     // =========================================================================
-    // 로우폴리 한옥마을 쿼터뷰 + 놀이기구 정원(1~2마리) + 미끄럼틀/그네 + 게이지 시스템
+    // 첨부 이미지(korea_n_home) 스타일 로우폴리 한옥마을 쿼터뷰 캔버스 렌더링
     // =========================================================================
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -1103,14 +982,12 @@
     let treasureChest = { active: true, x: 0.78, y: 0.66, bob: 0 };
     let nearestDog = null;
     let activeModalDog = null;
-    let toyParticles = [];
 
-    const TOY_POS = { x: 0.74, y: 0.48 };
-
+    // 로우폴리 가을 단풍나무 & 은행나무 배치 (첨부 이미지 컬러 톤)
     const lowPolyTrees = [
-      { x: 0.14, y: 0.34, colorMain: '#c14933', colorDark: '#8f2d1e', scale: 0.95 },
+      { x: 0.14, y: 0.34, colorMain: '#c14933', colorDark: '#8f2d1e', scale: 0.95 }, // 붉은 단풍
       { x: 0.36, y: 0.25, colorMain: '#d95d39', colorDark: '#9e3a1e', scale: 0.82 },
-      { x: 0.65, y: 0.25, colorMain: '#e09f3e', colorDark: '#b07822', scale: 0.85 },
+      { x: 0.65, y: 0.25, colorMain: '#e09f3e', colorDark: '#b07822', scale: 0.85 }, // 황금 은행나무
       { x: 0.86, y: 0.35, colorMain: '#c14933', colorDark: '#8f2d1e', scale: 0.95 },
       { x: 0.12, y: 0.63, colorMain: '#e09f3e', colorDark: '#b07822', scale: 0.90 },
       { x: 0.88, y: 0.64, colorMain: '#d95d39', colorDark: '#9e3a1e', scale: 0.92 }
@@ -1121,6 +998,7 @@
       const clickX = (e.clientX - rect.left) / width;
       const clickY = (e.clientY - rect.top) / height;
 
+      // 1. 대두 강아지 터치
       for (let d of dogs) {
         const dx = (d.x * width) - (clickX * width);
         const dy = ((d.y * height) - 18) - (clickY * height);
@@ -1130,40 +1008,23 @@
         }
       }
 
+      // 2. 좌측 한옥 메인 주택 터치 시 상점 열기
       const hx = width * 0.24, hy = height * 0.45;
       if (Math.hypot(hx - clickX * width, hy - clickY * height) < 58) {
         openShopModal('house');
         return;
       }
 
+      // 3. 우측 마당 놀이 터치 시 상점 열기
       if (equippedToy !== 'toy_none') {
-        const tyX = width * TOY_POS.x, tyY = height * TOY_POS.y;
-        if (Math.hypot(tyX - clickX * width, tyY - clickY * height) < 52) {
-          const toyMeta = SHOP_CATALOG.find(x => x.id === equippedToy);
-          const cap = toyMeta ? toyMeta.capacity : 1;
-          const currentPlayers = dogs.filter(d => d.isPlayingToy);
-
-          if (currentPlayers.length < cap) {
-            const candidate = dogs
-              .filter(d => !d.isPlayingToy && d.hunger >= 30 && d.fun < 85)
-              .sort((a, b) => a.fun - b.fun)[0];
-
-            if (candidate) {
-              candidate.isPlayingToy = true;
-              candidate.playSlot = currentPlayers.length;
-              candidate.playPhase = 0;
-              playTone(680, 'sine', 0.14);
-              spawnFloatingEmoji(tyX, tyY - 25, `🎵 ${candidate.name}가 놀이기구로 달려가요!`);
-            } else {
-              spawnFloatingEmoji(tyX, tyY - 25, `😊 다들 배가 고프거나 놀이 게이지가 가득 찼어요!`);
-            }
-          } else {
-            spawnFloatingEmoji(tyX, tyY - 25, `⏳ 정원(${cap}마리)이 꽉 차서 차례를 기다려요!`);
-          }
+        const tyX = width * 0.76, tyY = height * 0.47;
+        if (Math.hypot(tyX - clickX * width, tyY - clickY * height) < 48) {
+          openShopModal('toy');
           return;
         }
       }
 
+      // 4. 복주머니 보물함 터치
       if (treasureChest.active) {
         const tx = treasureChest.x * width;
         const ty = treasureChest.y * height;
@@ -1200,35 +1061,72 @@
     function spawnFloatingEmoji(x, y, text) {
       const el = document.createElement('div');
       el.className = 'floating-emoji font-jua text-stone-900 drop-shadow';
-      el.style.left = (x - 35) + 'px';
+      el.style.left = (x - 25) + 'px';
       el.style.top = (y - 20) + 'px';
       el.textContent = text;
       document.body.appendChild(el);
       setTimeout(() => el.remove(), 1100);
     }
 
+    // --- 첨부 이미지 스타일: 다각형 로우폴리 단풍/은행나무 ---
     function drawLowPolyTree(x, y, colorMain, colorDark, s = 1) {
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(s, s);
+
+      // 그림자
       ctx.fillStyle = 'rgba(30, 45, 20, 0.22)';
       ctx.beginPath(); ctx.ellipse(4, 26, 24, 9, 0, 0, Math.PI * 2); ctx.fill();
+
+      // 각진 나무 기둥
       ctx.fillStyle = '#5c3a21';
-      ctx.beginPath(); ctx.moveTo(-5, 24); ctx.lineTo(-4, 0); ctx.lineTo(4, 0); ctx.lineTo(5, 24); ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-5, 24); ctx.lineTo(-4, 0); ctx.lineTo(4, 0); ctx.lineTo(5, 24);
+      ctx.closePath(); ctx.fill();
+
+      // 다면체 로우폴리 수관 (왼쪽 밝은 면 + 오른쪽 어두운 면 + 상단 면)
       ctx.fillStyle = colorMain;
-      ctx.beginPath(); ctx.moveTo(0, -34); ctx.lineTo(-24, -14); ctx.lineTo(-18, 6); ctx.lineTo(0, 10); ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(0, -34);
+      ctx.lineTo(-24, -14);
+      ctx.lineTo(-18, 6);
+      ctx.lineTo(0, 10);
+      ctx.closePath();
+      ctx.fill();
+
       ctx.fillStyle = colorDark;
-      ctx.beginPath(); ctx.moveTo(0, -34); ctx.lineTo(24, -14); ctx.lineTo(18, 6); ctx.lineTo(0, 10); ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(0, -34);
+      ctx.lineTo(24, -14);
+      ctx.lineTo(18, 6);
+      ctx.lineTo(0, 10);
+      ctx.closePath();
+      ctx.fill();
+
+      // 중앙 하이라이트 삼각면
+      ctx.fillStyle = 'rgba(255,255,255,0.14)';
+      ctx.beginPath();
+      ctx.moveTo(0, -34);
+      ctx.lineTo(-12, -10);
+      ctx.lineTo(10, -12);
+      ctx.closePath();
+      ctx.fill();
+
       ctx.restore();
     }
 
+    // --- 첨부 이미지 스타일: 원경 한옥 담장 & 이웃 초가집 ---
     function drawBackgroundHanokVillage() {
+      // 상단 이웃 초가집 2채 (원경 배치)
       drawMiniChoga(width * 0.24, height * 0.23, 0.72);
       drawMiniChoga(width * 0.76, height * 0.23, 0.72);
+
+      // 중앙 상단 기와 정자
       const px = width * 0.50, py = height * 0.22;
       ctx.fillStyle = '#4a3525';
       ctx.fillRect(px - 22, py - 8, 4, 18);
       ctx.fillRect(px + 18, py - 8, 4, 18);
+      // 기와 지붕
       ctx.fillStyle = '#3b424c';
       ctx.beginPath();
       ctx.moveTo(px - 32, py - 6);
@@ -1245,81 +1143,139 @@
       ctx.scale(scale, scale);
       ctx.fillStyle = 'rgba(0,0,0,0.16)';
       ctx.beginPath(); ctx.ellipse(0, 18, 34, 12, 0, 0, Math.PI * 2); ctx.fill();
+      // 황토 벽
       ctx.fillStyle = '#e8d5b7';
       ctx.fillRect(-24, -4, 48, 20);
+      // 둥근 초가 볏짚 지붕
       ctx.fillStyle = '#d9b468';
-      ctx.beginPath(); ctx.ellipse(0, -6, 32, 16, 0, Math.PI, 0); ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(0, -6, 32, 16, 0, Math.PI, 0);
+      ctx.fill();
       ctx.fillStyle = '#c49d52';
-      ctx.beginPath(); ctx.ellipse(0, -6, 32, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(0, -6, 32, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // 용마름
+      ctx.strokeStyle = '#9c7834';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(-12, -18); ctx.lineTo(12, -18); ctx.stroke();
       ctx.restore();
     }
 
+    // --- 한옥 광장 중앙 연꽃 석조 분수대 ---
     function drawHanokPlazaFountain(fx, fy) {
       ctx.fillStyle = 'rgba(30, 40, 25, 0.18)';
       ctx.beginPath(); ctx.ellipse(fx, fy + 16, 42, 18, 0, 0, Math.PI * 2); ctx.fill();
+
+      // 화강암 팔각 느낌 테두리
       ctx.fillStyle = '#ced4da';
       ctx.strokeStyle = '#6c757d';
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.ellipse(fx, fy + 8, 36, 15, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+      // 맑은 연못 물
       ctx.fillStyle = '#56cfe1';
       ctx.beginPath(); ctx.ellipse(fx, fy + 6, 29, 11, 0, 0, Math.PI * 2); ctx.fill();
+
+      // 중앙 석탑형 물줄기
       ctx.fillStyle = '#adb5bd';
       ctx.fillRect(fx - 5, fy - 10, 10, 16);
       ctx.beginPath(); ctx.ellipse(fx, fy - 10, 12, 5, 0, 0, Math.PI * 2); ctx.fill();
+
       const spout = Math.sin(frame * 0.14) * 2.5;
       ctx.fillStyle = '#caf0f8';
       ctx.beginPath(); ctx.arc(fx, fy - 16 + spout, 4.5, 0, Math.PI * 2); ctx.fill();
     }
 
+    // --- 메인 한옥 주택 렌더링 (초가집 -> 청기와 한옥 -> 대감집 -> 궁궐) ---
     function drawHanokMainHouse(x, y) {
       ctx.fillStyle = 'rgba(25, 45, 20, 0.22)';
       ctx.beginPath(); ctx.ellipse(x, y + 28, 52, 20, 0, 0, Math.PI * 2); ctx.fill();
 
       if (equippedHouse === 'house_choga') {
+        // 1. 둥근 초가집 (첨부 이미지의 시그니처 건물!)
         ctx.fillStyle = '#efe0c9';
         ctx.strokeStyle = '#6f4e37';
         ctx.lineWidth = 2.2;
         ctx.beginPath(); ctx.roundRect(x - 34, y - 4, 68, 30, 4); ctx.fill(); ctx.stroke();
+        // 나무 기둥 & 방문
         ctx.fillStyle = '#6f4e37';
         ctx.fillRect(x - 32, y - 4, 5, 30);
         ctx.fillRect(x + 27, y - 4, 5, 30);
         ctx.fillStyle = '#4a3525';
         ctx.fillRect(x - 10, y + 4, 20, 22);
+        // 둥근 황금 볏짚 지붕
         ctx.fillStyle = '#deb868';
         ctx.beginPath(); ctx.ellipse(x, y - 6, 44, 24, 0, Math.PI, 0); ctx.fill(); ctx.stroke();
         ctx.fillStyle = '#c9a04e';
         ctx.beginPath(); ctx.ellipse(x, y - 6, 44, 9, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        // 지붕 위 용마름
+        ctx.strokeStyle = '#8c6623';
+        ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(x - 18, y - 24); ctx.lineTo(x + 18, y - 24); ctx.stroke();
       } else if (equippedHouse === 'house_giwa') {
+        // 2. 단아한 청기와 한옥
         ctx.fillStyle = '#fdf8ee';
         ctx.strokeStyle = '#3d2817';
         ctx.lineWidth = 2.2;
         ctx.fillRect(x - 36, y - 6, 72, 32); ctx.strokeRect(x - 36, y - 6, 72, 32);
+        // 한옥 격자 창호문
         ctx.fillStyle = '#d4a373';
         ctx.fillRect(x - 12, y + 4, 24, 22);
+        ctx.strokeRect(x - 12, y + 4, 24, 22);
+        // 곡선 처마 기와지붕
         ctx.fillStyle = '#3b424c';
-        ctx.beginPath(); ctx.moveTo(x - 48, y - 4); ctx.quadraticCurveTo(x, y - 16, x + 48, y - 4); ctx.lineTo(x + 26, y - 28); ctx.lineTo(x - 26, y - 28); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - 48, y - 4);
+        ctx.quadraticCurveTo(x, y - 16, x + 48, y - 4);
+        ctx.lineTo(x + 26, y - 28);
+        ctx.lineTo(x - 26, y - 28);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
       } else if (equippedHouse === 'house_daegam') {
+        // 3. 붉은 기둥 양반가 대감집
         ctx.fillStyle = '#fff8eb';
         ctx.strokeStyle = '#4a1c17';
         ctx.lineWidth = 2.4;
         ctx.fillRect(x - 42, y - 10, 84, 36); ctx.strokeRect(x - 42, y - 10, 84, 36);
+        // 붉은 단청 기둥
         ctx.fillStyle = '#b5172c';
-        ctx.fillRect(x - 40, y - 10, 6, 36); ctx.fillRect(x - 16, y - 10, 6, 36); ctx.fillRect(x + 10, y - 10, 6, 36); ctx.fillRect(x + 34, y - 10, 6, 36);
+        ctx.fillRect(x - 40, y - 10, 6, 36);
+        ctx.fillRect(x - 16, y - 10, 6, 36);
+        ctx.fillRect(x + 10, y - 10, 6, 36);
+        ctx.fillRect(x + 34, y - 10, 6, 36);
+        // 2단 웅장 기와지붕
         ctx.fillStyle = '#2b303a';
-        ctx.beginPath(); ctx.moveTo(x - 54, y - 8); ctx.quadraticCurveTo(x, y - 20, x + 54, y - 8); ctx.lineTo(x + 32, y - 34); ctx.lineTo(x - 32, y - 34); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - 54, y - 8);
+        ctx.quadraticCurveTo(x, y - 20, x + 54, y - 8);
+        ctx.lineTo(x + 32, y - 34);
+        ctx.lineTo(x - 32, y - 34);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
       } else if (equippedHouse === 'house_palace') {
+        // 4. 황금 단청 경복궁 정전
         ctx.fillStyle = '#fff3b0';
         ctx.strokeStyle = '#7f4f24';
         ctx.lineWidth = 2.5;
         ctx.fillRect(x - 46, y - 14, 92, 40); ctx.strokeRect(x - 46, y - 14, 92, 40);
         ctx.fillStyle = '#c1121f';
         for (let px = -42; px <= 38; px += 16) ctx.fillRect(x + px, y - 14, 5, 40);
+        // 중층 팔작지붕
         ctx.fillStyle = '#1d3557';
-        ctx.beginPath(); ctx.moveTo(x - 58, y - 12); ctx.quadraticCurveTo(x, y - 26, x + 58, y - 12); ctx.lineTo(x + 34, y - 42); ctx.lineTo(x - 34, y - 42); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - 58, y - 12);
+        ctx.quadraticCurveTo(x, y - 26, x + 58, y - 12);
+        ctx.lineTo(x + 34, y - 42);
+        ctx.lineTo(x - 34, y - 42);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        // 황금 용마루 장식
         ctx.fillStyle = '#ffb703';
         ctx.fillRect(x - 34, y - 45, 68, 5);
       }
 
+      // 현판 이름표
       ctx.fillStyle = '#2d1e14';
       ctx.beginPath(); ctx.roundRect(x - 36, y + 30, 72, 17, 6); ctx.fill();
       ctx.strokeStyle = '#ffb703';
@@ -1331,92 +1287,47 @@
       ctx.fillText('우리 한옥집 🏯', x, y + 42);
     }
 
-    function drawHanokYardToyBase(x, y, playingDogs) {
+    // --- 한옥 마당 놀이기구 렌더링 ---
+    function drawHanokYardToy(x, y) {
       if (equippedToy === 'toy_none') return;
-      const isPlaying = playingDogs.length > 0;
       ctx.fillStyle = 'rgba(25, 45, 20, 0.18)';
-      ctx.beginPath(); ctx.ellipse(x, y + 20, 34, 12, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x, y + 18, 28, 11, 0, 0, Math.PI * 2); ctx.fill();
 
-      if (equippedToy === 'toy_slide') {
-        ctx.fillStyle = '#8c583a';
-        ctx.strokeStyle = '#4a3525';
-        ctx.lineWidth = 2;
-        ctx.fillRect(x - 28, y - 28, 14, 48); ctx.strokeRect(x - 28, y - 28, 14, 48);
-        ctx.strokeStyle = '#deb887';
-        ctx.lineWidth = 2.5;
-        for (let sy = -18; sy <= 12; sy += 10) {
-          ctx.beginPath(); ctx.moveTo(x - 26, y + sy); ctx.lineTo(x - 16, y + sy); ctx.stroke();
-        }
-        ctx.fillStyle = '#4ea8de';
-        ctx.strokeStyle = '#1d3557';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x - 14, y - 24);
-        ctx.lineTo(x + 32, y + 18);
-        ctx.lineTo(x + 18, y + 20);
-        ctx.lineTo(x - 14, y - 10);
-        ctx.closePath();
-        ctx.fill(); ctx.stroke();
-      } else if (equippedToy === 'toy_swing') {
-        ctx.strokeStyle = '#9e2a2b';
-        ctx.lineWidth = 5;
-        ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(x - 26, y + 20); ctx.lineTo(x - 18, y - 34); ctx.lineTo(x - 10, y + 20); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(x + 10, y + 20); ctx.lineTo(x + 18, y - 34); ctx.lineTo(x + 26, y + 20); ctx.stroke();
-        ctx.strokeStyle = '#582f0e';
-        ctx.lineWidth = 6;
-        ctx.beginPath(); ctx.moveTo(x - 24, y - 34); ctx.lineTo(x + 24, y - 34); ctx.stroke();
-
-        const swingOffset = isPlaying ? Math.sin(frame * 0.14) * 14 : Math.sin(frame * 0.04) * 3;
-        ctx.strokeStyle = '#deb887';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x - 8, y - 34); ctx.lineTo(x - 8 + swingOffset, y + 4);
-        ctx.moveTo(x + 8, y - 34); ctx.lineTo(x + 8 + swingOffset, y + 4);
-        ctx.stroke();
-
-        ctx.fillStyle = '#ffb703';
-        ctx.strokeStyle = '#4a3525';
-        ctx.lineWidth = 1.8;
-        ctx.beginPath(); ctx.roundRect(x - 12 + swingOffset, y + 2, 24, 6, 3); ctx.fill(); ctx.stroke();
-      } else if (equippedToy === 'toy_jangdok') {
-        const wobble = isPlaying ? Math.abs(Math.sin(frame * 0.35)) * 3 : 0;
-        const drawJar = (jx, jy, r, lidLift) => {
+      if (equippedToy === 'toy_jangdok') {
+        // 옹기종기 장독대 3개
+        const drawJar = (jx, jy, r) => {
           ctx.fillStyle = '#4a2511';
           ctx.strokeStyle = '#241005';
           ctx.lineWidth = 2;
           ctx.beginPath(); ctx.ellipse(jx, jy, r, r * 1.15, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
           ctx.fillStyle = '#6f3718';
-          ctx.beginPath(); ctx.ellipse(jx, jy - r * 0.9 - lidLift, r * 0.75, r * 0.3, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(jx, jy - r * 0.9, r * 0.75, r * 0.3, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
         };
-        drawJar(x - 14, y + 6, 9, 0);
-        drawJar(x + 12, y + 7, 8, 0);
-        drawJar(x, y - 2, 11, wobble);
+        drawJar(x - 14, y + 6, 9);
+        drawJar(x + 12, y + 7, 8);
+        drawJar(x, y - 2, 11);
+      } else if (equippedToy === 'toy_tuho') {
+        // 민속 투호 항아리와 화살
+        ctx.fillStyle = '#bc4749';
+        ctx.strokeStyle = '#4a1c17';
+        ctx.lineWidth = 2;
+        ctx.fillRect(x - 9, y - 4, 18, 22); ctx.strokeRect(x - 9, y - 4, 18, 22);
+        ctx.strokeStyle = '#ffb703';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x - 12, y - 22); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + 4, y - 4); ctx.lineTo(x + 10, y - 24); ctx.stroke();
       } else if (equippedToy === 'toy_pond') {
+        // 연꽃 연못
         ctx.fillStyle = '#48cae4';
         ctx.strokeStyle = '#6c757d';
         ctx.lineWidth = 3;
         ctx.beginPath(); ctx.ellipse(x, y + 4, 34, 17, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        // 연잎 & 연꽃
         ctx.fillStyle = '#52b788';
         ctx.beginPath(); ctx.arc(x - 10, y + 4, 7, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#ff758f';
         ctx.beginPath(); ctx.arc(x - 10, y + 2, 4, 0, Math.PI * 2); ctx.fill();
-        if (isPlaying) {
-          const r = (frame % 30) / 30;
-          ctx.strokeStyle = `rgba(255,255,255,${1 - r})`;
-          ctx.lineWidth = 2;
-          ctx.beginPath(); ctx.ellipse(x + 6, y + 4, 6 + r * 20, 3 + r * 9, 0, 0, Math.PI * 2); ctx.stroke();
-        }
       }
-
-      const toyMeta = SHOP_CATALOG.find(item => item.id === equippedToy);
-      const cap = toyMeta ? toyMeta.capacity : 1;
-      ctx.fillStyle = 'rgba(253,248,238,0.94)';
-      ctx.beginPath(); ctx.roundRect(x - 34, y + 24, 68, 15, 7); ctx.fill();
-      ctx.fillStyle = '#4a3525';
-      ctx.font = 'bold 9.5px Jua';
-      ctx.textAlign = 'center';
-      ctx.fillText(isPlaying ? `노는중 (${playingDogs.length}/${cap}마리)` : `놀이터 (0/${cap}마리)`, x, y + 34);
     }
 
     let frame = 0;
@@ -1424,9 +1335,11 @@
       frame++;
       ctx.clearRect(0, 0, width, height);
 
+      // 1. 첨부 이미지(korea_n_home) 스타일 연두 잔디 단지 배경
       ctx.fillStyle = '#8ab858';
       ctx.fillRect(0, 0, width, height);
 
+      // 단지 내 흙빛/모래빛 한옥 안마당 광장
       ctx.fillStyle = '#efe5cf';
       ctx.strokeStyle = '#c7b899';
       ctx.lineWidth = 3;
@@ -1435,140 +1348,38 @@
       ctx.fill();
       ctx.stroke();
 
+      // 2. 첨부 이미지 스타일 아스팔트 격자 도로 & 흰색 횡단보도
       const drawRoadWithCrosswalk = (ry) => {
         ctx.fillStyle = '#5c6066';
         ctx.fillRect(0, ry - 18, width, 36);
+        // 도로 위 아래 인도 연석
         ctx.fillStyle = '#adb5bd';
         ctx.fillRect(0, ry - 21, width, 3);
         ctx.fillRect(0, ry + 18, width, 3);
+        // 중앙 황색 점선
         ctx.strokeStyle = '#ffca3a';
         ctx.lineWidth = 2;
         ctx.setLineDash([14, 12]);
         ctx.beginPath(); ctx.moveTo(0, ry); ctx.lineTo(width, ry); ctx.stroke();
         ctx.setLineDash([]);
+        // 흰색 횡단보도 줄무늬 (좌·우 2곳)
         ctx.fillStyle = '#ffffff';
         for (let i = -12; i <= 10; i += 6) {
           ctx.fillRect(width * 0.25 - 10, ry + i, 20, 3);
           ctx.fillRect(width * 0.75 - 10, ry + i, 20, 3);
         }
       };
-      drawRoadWithCrosswalk(height * 0.30);
-      drawRoadWithCrosswalk(height * 0.75);
 
-      const toyMeta = SHOP_CATALOG.find(x => x.id === equippedToy);
-      const toyCapacity = (equippedToy !== 'toy_none' && toyMeta) ? toyMeta.capacity : 0;
+      drawRoadWithCrosswalk(height * 0.30); // 상단 도로
+      drawRoadWithCrosswalk(height * 0.75); // 하단 도로
 
-      if (frame % 180 === 0) {
-        dogs.forEach(d => {
-          d.hunger = Math.max(15, d.hunger - 1);
-          if (!d.isPlayingToy) d.fun = Math.max(15, d.fun - 1);
-        });
-      }
-
-      if (toyCapacity > 0) {
-        const activePlayers = dogs.filter(d => d.isPlayingToy);
-        if (activePlayers.length < toyCapacity && Math.random() < 0.015) {
-          const nextDog = dogs
-            .filter(d => !d.isPlayingToy && d.hunger >= 35 && d.fun < 75)
-            .sort((a, b) => a.fun - b.fun)[0];
-
-          if (nextDog) {
-            nextDog.isPlayingToy = true;
-            nextDog.playSlot = activePlayers.some(p => p.playSlot === 0) ? 1 : 0;
-            nextDog.playPhase = 0;
-          }
-        }
-      } else {
-        dogs.forEach(d => { d.isPlayingToy = false; });
-      }
-
-      dogs.forEach((d, idx) => {
-        if (d.isPlayingToy && toyCapacity > 0) {
-          let destX = TOY_POS.x + (d.playSlot === 1 ? 0.06 : -0.04);
-          let destY = TOY_POS.y + 0.04;
-
-          if (equippedToy === 'toy_slide') {
-            d.playPhase = (d.playPhase + 1) % 110;
-            if (d.playPhase < 40) {
-              const t = d.playPhase / 40;
-              destX = TOY_POS.x - 0.05;
-              destY = TOY_POS.y + 0.03 - t * 0.06;
-              d.facing = 1;
-            } else if (d.playPhase < 55) {
-              destX = TOY_POS.x - 0.03;
-              destY = TOY_POS.y - 0.04;
-              d.facing = 1;
-            } else if (d.playPhase < 95) {
-              const t = (d.playPhase - 55) / 40;
-              destX = (TOY_POS.x - 0.03) + t * 0.09;
-              destY = (TOY_POS.y - 0.04) + t * 0.08;
-              d.facing = 1;
-            } else {
-              destX = TOY_POS.x + 0.06;
-              destY = TOY_POS.y + 0.04;
-            }
-            d.x += (destX - d.x) * 0.14;
-            d.y += (destY - d.y) * 0.14;
-            d.walkBounce = (d.playPhase >= 55 && d.playPhase < 95) ? 4 : Math.abs(Math.sin(frame * 0.25)) * 5;
-          } else if (equippedToy === 'toy_swing') {
-            const swingOffset = Math.sin(frame * 0.14) * (14 / width);
-            destX = TOY_POS.x + swingOffset;
-            destY = TOY_POS.y + 0.01;
-            d.x += (destX - d.x) * 0.25;
-            d.y += (destY - d.y) * 0.25;
-            d.facing = Math.cos(frame * 0.14) >= 0 ? 1 : -1;
-            d.walkBounce = Math.abs(Math.sin(frame * 0.14)) * 8;
-          } else {
-            d.x += (destX - d.x) * 0.05;
-            d.y += (destY - d.y) * 0.05;
-            d.walkBounce = Math.abs(Math.sin(frame * 0.26 + idx)) * 10;
-            if (frame % 50 === 0) d.facing = (d.facing || 1) * -1;
-          }
-
-          if (frame % 18 === 0) {
-            d.fun = Math.min(100, d.fun + 2);
-            if (Math.random() < 0.35) {
-              toyParticles.push({
-                x: d.x * width,
-                y: d.y * height - 48,
-                emoji: equippedToy === 'toy_slide' ? '✨' : (equippedToy === 'toy_swing' ? '🌸' : '🎵'),
-                life: 30
-              });
-            }
-            if (d.fun >= 100) {
-              d.isPlayingToy = false;
-              d.targetX = 0.25 + Math.random() * 0.45;
-              d.targetY = 0.52 + Math.random() * 0.18;
-              spawnFloatingEmoji(d.x * width, d.y * height - 45, `😄 ${d.name} 놀이 만족 100%!`);
-            }
-          }
-        } else {
-          const dx = d.targetX - d.x;
-          const dy = d.targetY - d.y;
-          if (Math.hypot(dx, dy) > 0.006) {
-            d.facing = dx >= 0 ? 1 : -1;
-            d.x += dx * 0.012;
-            d.y += dy * 0.012;
-            d.walkBounce = Math.abs(Math.sin(frame * 0.22 + idx)) * 5;
-            d.legPhase = frame * 0.28 + idx;
-          } else {
-            d.walkBounce = 0;
-            d.legPhase = 0;
-            if (Math.random() < 0.015) {
-              d.targetX = 0.18 + Math.random() * 0.48;
-              d.targetY = 0.48 + Math.random() * 0.22;
-            }
-          }
-        }
-      });
-
-      const currentlyPlayingDogs = dogs.filter(d => d.isPlayingToy);
-
+      // 3. 상단 원경 한옥마을 & 중앙 연꽃 분수대 & 내 한옥집 & 마당 놀이
       drawBackgroundHanokVillage();
       drawHanokPlazaFountain(width * 0.50, height * 0.43);
       drawHanokMainHouse(width * 0.24, height * 0.45);
-      drawHanokYardToyBase(width * TOY_POS.x, height * TOY_POS.y, currentlyPlayingDogs);
+      drawHanokYardToy(width * 0.76, height * 0.47);
 
+      // 4. 황금 복주머니 보물함
       if (treasureChest.active) {
         treasureChest.bob = Math.sin(frame * 0.08) * 3;
         const tx = treasureChest.x * width;
@@ -1595,6 +1406,7 @@
         ctx.fill(); ctx.stroke();
       }
 
+      // 5. 보호자 & 강아지 이동 업데이트
       const pdx = player.targetX - player.x;
       const pdy = player.targetY - player.y;
       if (Math.hypot(pdx, pdy) > 0.004) {
@@ -1605,6 +1417,26 @@
         player.bounce = 0;
       }
 
+      dogs.forEach((d, idx) => {
+        const dx = d.targetX - d.x;
+        const dy = d.targetY - d.y;
+        if (Math.hypot(dx, dy) > 0.005) {
+          d.facing = dx >= 0 ? 1 : -1;
+          d.x += dx * 0.012;
+          d.y += dy * 0.012;
+          d.walkBounce = Math.abs(Math.sin(frame * 0.22 + idx)) * 5;
+          d.legPhase = frame * 0.28 + idx;
+        } else {
+          d.walkBounce = 0;
+          d.legPhase = 0;
+          if (Math.random() < 0.015) {
+            d.targetX = 0.20 + Math.random() * 0.60;
+            d.targetY = 0.48 + Math.random() * 0.24;
+          }
+        }
+      });
+
+      // 6. Y좌표 깊이 정렬 (로우폴리 나무 + 대두 강아지 + 보호자)
       const renderList = [
         ...lowPolyTrees.map(t => ({ type: 'tree', y: t.y, data: t })),
         ...dogs.map(d => ({ type: 'dog', y: d.y, data: d })),
@@ -1633,19 +1465,10 @@
         }
       });
 
-      for (let i = toyParticles.length - 1; i >= 0; i--) {
-        const p = toyParticles[i];
-        p.y -= 0.8;
-        p.life--;
-        ctx.font = '16px sans-serif';
-        ctx.fillText(p.emoji, p.x, p.y);
-        if (p.life <= 0) toyParticles.splice(i, 1);
-      }
-
       const interactBtn = document.getElementById('interactBtn');
       if (nearestDog && document.getElementById('realWorldWalkView').classList.contains('hidden')) {
         interactBtn.classList.remove('hidden');
-        document.getElementById('interactLabel').textContent = `📛 ${nearestDog.name} 호패·게이지 보기`;
+        document.getElementById('interactLabel').textContent = `📛 ${nearestDog.name} 호패 보기`;
       } else {
         interactBtn.classList.add('hidden');
       }
@@ -1667,18 +1490,23 @@
       requestAnimationFrame(draw);
     }
 
+    // 한복 도포를 입은 견주 아바타
     function drawHanokPlayerAvatar(x, y) {
       ctx.fillStyle = 'rgba(0,0,0,0.2)';
       ctx.beginPath(); ctx.ellipse(x, y + 18, 15, 6, 0, 0, Math.PI * 2); ctx.fill();
+      // 옥색 한복 도포
       ctx.fillStyle = '#4ea8de';
       ctx.strokeStyle = '#1d3557';
       ctx.lineWidth = 1.8;
       ctx.beginPath(); ctx.roundRect(x - 11, y - 4, 22, 21, 7); ctx.fill(); ctx.stroke();
+      // 고름
       ctx.strokeStyle = '#fff';
       ctx.beginPath(); ctx.moveTo(x - 2, y); ctx.lineTo(x + 4, y + 12); ctx.stroke();
+      // 얼굴
       ctx.fillStyle = '#ffcdb2';
       ctx.strokeStyle = '#5c3d1e';
       ctx.beginPath(); ctx.arc(x, y - 14, 12, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      // 상투 & 갓
       ctx.fillStyle = '#2b2d42';
       ctx.fillRect(x - 16, y - 22, 32, 3);
       ctx.fillRect(x - 7, y - 30, 14, 8);
@@ -1691,62 +1519,7 @@
       ctx.fillText('나(견주)', x, y - 35);
     }
 
-    function drawTraditionalHatOnDog(hx, hy, accId) {
-      if (!accId || accId === 'none') return;
-      ctx.save();
-      ctx.translate(hx, hy);
-
-      if (accId === 'gat') {
-        ctx.fillStyle = 'rgba(30, 32, 42, 0.92)';
-        ctx.strokeStyle = '#111';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.ellipse(0, -23, 28, 7, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.fillRect(-10, -37, 20, 14); ctx.strokeRect(-10, -37, 20, 14);
-        ctx.strokeStyle = '#e63946';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(-12, -20); ctx.quadraticCurveTo(0, -8, 12, -20); ctx.stroke();
-      } else if (accId === 'bok') {
-        ctx.fillStyle = '#e63946';
-        ctx.strokeStyle = '#ffb703';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(14, -22, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#fff3b0';
-        ctx.font = 'bold 9px Jua';
-        ctx.textAlign = 'center';
-        ctx.fillText('福', 14, -19);
-      } else if (accId === 'jokduri') {
-        ctx.fillStyle = '#2b2d42';
-        ctx.strokeStyle = '#ffb703';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.roundRect(-11, -35, 22, 13, 5); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#ff4d6d';
-        ctx.beginPath(); ctx.arc(0, -29, 4, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#ffca3a';
-        ctx.beginPath(); ctx.arc(-6, -28, 2.5, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(6, -28, 2.5, 0, Math.PI * 2); ctx.fill();
-      } else if (accId === 'eosa') {
-        ctx.fillStyle = '#2b2d42';
-        ctx.fillRect(-12, -33, 24, 11);
-        ctx.strokeStyle = '#ff758f';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath(); ctx.moveTo(-8, -32); ctx.quadraticCurveTo(-24, -46, -28, -36); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(8, -32); ctx.quadraticCurveTo(24, -46, 28, -36); ctx.stroke();
-        ctx.fillStyle = '#ffccd5';
-        ctx.beginPath(); ctx.arc(-26, -38, 4, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(26, -38, 4, 0, Math.PI * 2); ctx.fill();
-      } else if (accId === 'king') {
-        ctx.fillStyle = '#5a189a';
-        ctx.strokeStyle = '#ffb703';
-        ctx.lineWidth = 2.2;
-        ctx.beginPath(); ctx.roundRect(-13, -37, 26, 15, 6); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#ffb703';
-        ctx.fillRect(-18, -33, 5, 9);
-        ctx.fillRect(13, -33, 5, 9);
-      }
-
-      ctx.restore();
-    }
-
+    // --- 대두(왕큰 얼굴 + 작고 통통한 SD 몸통) 한옥풍 강아지 렌더링 ---
     function drawChibiBigHeadDog2D(x, y, dog) {
       const dir = dog.facing || 1;
       const furMain = dog.bodyColor || '#fff3b0';
@@ -1760,12 +1533,14 @@
       ctx.translate(x, y);
       ctx.scale(dir, 1);
 
+      // 뒤쪽 쪼꼬만 다리 2개
       ctx.fillStyle = furDark;
       ctx.strokeStyle = '#4a3525';
       ctx.lineWidth = 1.6;
       ctx.beginPath(); ctx.roundRect(-8 - legSwing, 6, 4.5, 8, 2.2); ctx.fill(); ctx.stroke();
       ctx.beginPath(); ctx.roundRect(3 + legSwing, 6, 4.5, 8, 2.2); ctx.fill(); ctx.stroke();
 
+      // 꼬리
       const tailWag = Math.sin(frame * 0.28) * 6;
       ctx.strokeStyle = furMain;
       ctx.lineWidth = 5.5;
@@ -1778,6 +1553,7 @@
       ctx.lineWidth = 1.4;
       ctx.stroke();
 
+      // 작고 통통한 SD 미니 몸통
       const bodyGrad = ctx.createRadialGradient(-2, 2, 2, 0, 4, 13);
       bodyGrad.addColorStop(0, '#ffffff');
       bodyGrad.addColorStop(0.4, furMain);
@@ -1789,15 +1565,18 @@
       ctx.ellipse(0, 4, 11, 8, 0, 0, Math.PI * 2);
       ctx.fill(); ctx.stroke();
 
+      // 앞쪽 쪼꼬만 다리 2개
       ctx.fillStyle = furMain;
       ctx.beginPath(); ctx.roundRect(-6 + legSwing, 7, 5, 8, 2.5); ctx.fill(); ctx.stroke();
       ctx.beginPath(); ctx.roundRect(4 - legSwing, 7, 5, 8, 2.5); ctx.fill(); ctx.stroke();
 
+      // 한복 댕기 스카프
       ctx.fillStyle = dog.isUser ? '#e63946' : '#f4a261';
       ctx.beginPath(); ctx.roundRect(3, -3, 8, 5, 2.5); ctx.fill();
 
       ctx.restore();
 
+      // 왕큰 대두 얼굴 + 양옆 펄럭이는 큰 귀
       const headX = x + (dir * 3);
       const headY = y - 19;
       const headTilt = Math.sin(frame * 0.14) * 0.09;
@@ -1836,32 +1615,34 @@
       }
       ctx.restore();
 
-      // 내가 등록한 강아지인 경우, 테두리를 반짝이는 금색/빨간색으로 두르고 "내 강아지 🌟" 배지 표시
-      const isMine = dog.isUser;
-      ctx.strokeStyle = isMine ? '#ff4d6d' : '#ffb703';
-      ctx.lineWidth = isMine ? 4 : 2.2;
+      ctx.strokeStyle = dog.isUser ? '#ffb703' : '#4a3525';
+      ctx.lineWidth = dog.isUser ? 3.5 : 2.2;
       ctx.beginPath();
       ctx.arc(headX, headY, 25, 0, Math.PI * 2);
       ctx.stroke();
 
-      const isTargetDog = isMine || (!dogs.some(x => x.isUser) && dog.id === 'dog1');
+      // 전통 의복 아이템 착용
+      const isTargetDog = dog.isUser || (!dogs.some(x => x.isUser) && dog.id === 'dog1');
       if (isTargetDog && equippedAcc !== 'none') {
-        drawTraditionalHatOnDog(headX, headY, equippedAcc);
+        ctx.font = '22px sans-serif';
+        ctx.textAlign = 'center';
+        const accMap = { bok: '🧧', gat: '🎩', jokduri: '👑', eosa: '🌸', king: '🔱' };
+        ctx.fillText(accMap[equippedAcc] || '', headX, headY - 26);
       }
 
-      const badgeOffsetY = (isTargetDog && equippedAcc !== 'none') ? -62 : -52;
-      ctx.fillStyle = isMine ? '#ffe5ec' : 'rgba(253, 248, 238, 0.96)';
-      ctx.beginPath(); ctx.roundRect(headX - 38, headY + badgeOffsetY, 76, 23, 8); ctx.fill();
-      ctx.strokeStyle = isMine ? '#ff4d6d' : '#7c583a';
-      ctx.lineWidth = 1.6;
+      // 호패 이름표 & 점수 배지
+      ctx.fillStyle = 'rgba(253, 248, 238, 0.96)';
+      ctx.beginPath(); ctx.roundRect(headX - 32, headY - 44, 64, 17, 8.5); ctx.fill();
+      ctx.strokeStyle = '#7c583a';
+      ctx.lineWidth = 1.4;
       ctx.stroke();
-
-      ctx.fillStyle = isMine ? '#9b111e' : '#2d1e14';
-      ctx.font = 'bold 10.5px Jua';
+      ctx.fillStyle = '#2d1e14';
+      ctx.font = 'bold 11px Jua';
       ctx.textAlign = 'center';
-      ctx.fillText(isMine ? `⭐ 내 강아지(${dog.name})` : `${dog.name} ♥${dog.score}`, headX, headY + badgeOffsetY + 15);
+      ctx.fillText(`${dog.name} ♥${dog.score}`, headX, headY - 32);
     }
 
+    // --- 반응형 리액션 캔버스 ---
     const rCanvas = document.getElementById('reactionCanvas');
     const rCtx = rCanvas.getContext('2d');
     let squishX = 1, squishY = 1;
@@ -1871,7 +1652,7 @@
     let isCooldown = false;
 
     function renderReactionCanvas() {
-      rCtx.clearRect(0, 0, 200, 200);
+      rCtx.clearRect(0, 0, 220, 220);
 
       if (reactionTimer > 0) {
         reactionTimer--;
@@ -1890,38 +1671,38 @@
       }
 
       rCtx.save();
-      rCtx.translate(100, 100);
+      rCtx.translate(110, 110);
       rCtx.scale(squishX, squishY);
 
       rCtx.beginPath();
-      rCtx.arc(0, 0, 80, 0, Math.PI * 2);
+      rCtx.arc(0, 0, 88, 0, Math.PI * 2);
       rCtx.closePath();
       rCtx.clip();
 
       if (activeModalDog && dogImages[activeModalDog.id]) {
-        rCtx.drawImage(dogImages[activeModalDog.id], -80, -80, 160, 160);
+        rCtx.drawImage(dogImages[activeModalDog.id], -88, -88, 176, 176);
       }
 
       if (reactionType === 'pet') {
         rCtx.fillStyle = 'rgba(255, 117, 143, 0.45)';
-        rCtx.beginPath(); rCtx.arc(-38, 16, 14, 0, Math.PI * 2); rCtx.fill();
-        rCtx.beginPath(); rCtx.arc(38, 16, 14, 0, Math.PI * 2); rCtx.fill();
+        rCtx.beginPath(); rCtx.arc(-42, 18, 16, 0, Math.PI * 2); rCtx.fill();
+        rCtx.beginPath(); rCtx.arc(42, 18, 16, 0, Math.PI * 2); rCtx.fill();
       }
       rCtx.restore();
 
       rCtx.strokeStyle = '#7c583a';
-      rCtx.lineWidth = 5;
-      rCtx.beginPath(); rCtx.arc(100, 100, 80, 0, Math.PI * 2); rCtx.stroke();
+      rCtx.lineWidth = 6;
+      rCtx.beginPath(); rCtx.arc(110, 110, 88, 0, Math.PI * 2); rCtx.stroke();
 
       if (reactionType === 'pet') {
-        const handX = 100 + Math.sin(reactionTimer * 0.35) * 26;
+        const handX = 110 + Math.sin(reactionTimer * 0.35) * 28;
+        rCtx.font = '38px sans-serif';
+        rCtx.textAlign = 'center';
+        rCtx.fillText('🤚', handX, 42);
+      } else if (reactionType === 'treat') {
         rCtx.font = '34px sans-serif';
         rCtx.textAlign = 'center';
-        rCtx.fillText('🤚', handX, 38);
-      } else if (reactionType === 'treat') {
-        rCtx.font = '32px sans-serif';
-        rCtx.textAlign = 'center';
-        rCtx.fillText('🦴', 100, 142 - Math.abs(Math.sin(reactionTimer * 0.4)) * 12);
+        rCtx.fillText('🦴', 110, 155 - Math.abs(Math.sin(reactionTimer * 0.4)) * 12);
       }
 
       rParticles = rParticles.slice(-20);
@@ -1930,7 +1711,7 @@
         p.x += p.vx;
         p.y += p.vy;
         p.life--;
-        rCtx.font = '18px sans-serif';
+        rCtx.font = '20px sans-serif';
         rCtx.fillText(p.emoji, p.x, p.y);
         if (p.life <= 0) rParticles.splice(i, 1);
       }
@@ -1946,8 +1727,8 @@
           reactionTimer = 25;
           if (rParticles.length < 12) {
             rParticles.push({
-              x: 100 + (Math.random() - 0.5) * 70,
-              y: 85,
+              x: 110 + (Math.random() - 0.5) * 80,
+              y: 90,
               vx: (Math.random() - 0.5) * 2,
               vy: -1.5 - Math.random(),
               life: 25,
@@ -1957,20 +1738,6 @@
         }
       }
     });
-
-    function updateProfileGaugesUI(dog) {
-      document.getElementById('modalDogScore').textContent = dog.score;
-      document.getElementById('modalHungerVal').textContent = dog.hunger;
-      document.getElementById('modalHungerBar').style.width = dog.hunger + '%';
-      document.getElementById('hungerStatusTag').textContent = dog.hunger < 35 ? '(배고픔!)' : (dog.hunger >= 90 ? '(든든함)' : '');
-
-      document.getElementById('modalFunVal').textContent = dog.fun;
-      document.getElementById('modalFunBar').style.width = dog.fun + '%';
-      document.getElementById('funStatusTag').textContent = dog.fun >= 90 ? '(놀이 만땅!)' : (dog.isPlayingToy ? '(노는중 🎵)' : '');
-
-      document.getElementById('modalLoveVal').textContent = dog.love;
-      document.getElementById('modalLoveBar').style.width = dog.love + '%';
-    }
 
     function startButtonCooldown() {
       isCooldown = true;
@@ -2001,14 +1768,13 @@
       reactionType = 'pet';
       reactionTimer = 45;
       activeModalDog.score += 1;
-      activeModalDog.love = Math.min(100, activeModalDog.love + 15);
       coins += 1;
       saveData();
-      updateProfileGaugesUI(activeModalDog);
+      document.getElementById('modalDogScore').textContent = activeModalDog.score;
 
       const lines = [
-        `“애정도가 쑥쑥 올라가요! (+15 애정 & +1냥 ❤️)”`,
-        `“거기 귀 뒤쪽! 딱 좋사옵니다 멍멍! 🥰”`,
+        `“기분 좋아서 꼬리가 프로펠러처럼 돌아요! (+1냥 ❤️)”`,
+        `“거기 귀 뒤쪽! 딱 좋사옵니다 멍멍! (+1냥 🥰)”`,
         `“쓰다듬어 주셔서 행복해요! 대감집에 한 걸음 더!”`
       ];
       document.getElementById('modalDogSpeech').textContent = lines[Math.floor(Math.random() * lines.length)];
@@ -2017,8 +1783,8 @@
 
       for (let i = 0; i < 6; i++) {
         rParticles.push({
-          x: 100 + (Math.random() - 0.5) * 80,
-          y: 100 + (Math.random() - 0.5) * 50,
+          x: 110 + (Math.random() - 0.5) * 90,
+          y: 110 + (Math.random() - 0.5) * 60,
           vx: (Math.random() - 0.5) * 3,
           vy: -1.5 - Math.random() * 2,
           life: 35,
@@ -2037,21 +1803,20 @@
 
       snacks -= 1;
       activeModalDog.score += 2;
-      activeModalDog.hunger = Math.min(100, activeModalDog.hunger + 25);
       coins += 2;
       saveData();
-      updateProfileGaugesUI(activeModalDog);
+      document.getElementById('modalDogScore').textContent = activeModalDog.score;
 
       reactionType = 'treat';
       reactionTimer = 50;
-      document.getElementById('modalDogSpeech').textContent = `“아삭아삭! 배부름이 +25% 채워졌어요! (+2점 & +2냥 🦴)”`;
+      document.getElementById('modalDogSpeech').textContent = `“아삭아삭! 한우 수제간식 맛이 일품이옵니다! (+2점 & +2냥 🦴)”`;
       playTone(440, 'triangle', 0.1);
       setTimeout(() => playTone(660, 'triangle', 0.15), 120);
 
       for (let i = 0; i < 7; i++) {
         rParticles.push({
-          x: 100 + (Math.random() - 0.5) * 70,
-          y: 110,
+          x: 110 + (Math.random() - 0.5) * 80,
+          y: 120,
           vx: (Math.random() - 0.5) * 3.5,
           vy: -2 - Math.random() * 2,
           life: 35,
@@ -2066,10 +1831,10 @@
 
     function openDogProfile(dog) {
       activeModalDog = dog;
-      document.getElementById('modalDogName').textContent = (dog.isUser ? '⭐ [내 강아지] ' : '') + dog.name;
-      document.getElementById('modalDogInfo').textContent = `${dog.breed} · ${dog.age} (${dog.town || '부산광역시'})`;
+      document.getElementById('modalDogName').textContent = dog.name;
+      document.getElementById('modalDogInfo').textContent = `${dog.breed} · ${dog.age}`;
+      document.getElementById('modalDogScore').textContent = dog.score;
       document.getElementById('modalDogSpeech').textContent = `“${dog.intro}”`;
-      updateProfileGaugesUI(dog);
       renderGuestbook();
       document.getElementById('profileModal').classList.remove('hidden');
     }
@@ -2106,7 +1871,7 @@
       const medals = ['🥇', '🥈', '🥉'];
       document.getElementById('topRankingList').innerHTML = sorted.map((d, idx) => `
         <div onclick="openDogProfile(dogs.find(x=>x.id==='${d.id}'))" class="cursor-pointer flex items-center justify-between bg-amber-50/90 hover:bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300">
-          <span class="font-bold text-stone-900 truncate">${medals[idx]} ${d.isUser ? '⭐' : ''}${d.name}</span>
+          <span class="font-bold text-stone-900 truncate">${medals[idx]} ${d.name}</span>
           <span class="font-jua text-rose-600">${d.score}점</span>
         </div>
       `).join('');
@@ -2168,24 +1933,18 @@
       const intro = document.getElementById('regIntro').value.trim() || '한옥마을에 새로 입주했어요! 🐾';
       const selectedTown = document.getElementById('regTown').value;
 
-      // 기존 내 강아지 마크 해제 후 새로 등록한 강아지를 '내 강아지(isUser: true)'로 설정
-      dogs.forEach(d => d.isUser = false);
-
       myTown = selectedTown;
-      townStats[selectedTown] = (townStats[selectedTown] || 100) + 1;
+      myTownCount += 1;
 
       const newDog = {
         id: 'user_' + Date.now(),
         name, breed, age, intro,
-        town: selectedTown,
         score: 10,
         bodyColor: uploadedPhotoData ? extractedFurColor : '#fff3b0',
         darkColor: uploadedPhotoData ? extractedFurDarkColor : '#e0c070',
         photo: uploadedPhotoData || createCuteDogAvatar('#ffccd5', '#ffb3c1', '#fff0f3', '#ff4d6d'),
         x: 0.5, y: 0.58, targetX: 0.45, targetY: 0.54,
         isUser: true,
-        hunger: 75, fun: 40, love: 80,
-        isPlayingToy: false, playPhase: 0,
         notes: [`${selectedTown} 한옥마을 입주를 축하해요! 🎉`]
       };
 
@@ -2277,7 +2036,7 @@
     }
 
     function openSnackChargeModal() {
-      document.getElementById('snackChargeModal').classList.add('hidden');
+      document.getElementById('snackChargeModal').classList.remove('hidden');
     }
 
     function watchAdForSnacks() {
@@ -2296,7 +2055,7 @@
     }
 
     saveData();
-    if (attendedToday) document.getElementById('attendDot'].classList.add('hidden');
+    if (attendedToday) document.getElementById('attendDot').classList.add('hidden');
     draw();
   </script>
 </body>
